@@ -73,7 +73,7 @@
                     <div class="card-body p-4 d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted fw-semibold mb-1">จำนวนบุคลากรครู</p>
-                            <h2 class="mb-0 text-primary-custom fw-bold">120</h2>
+                            <h2 class="mb-0 text-primary-custom fw-bold">120sdsdsd</h2>
                         </div>
                         <div class="icon-box text-primary-custom">
                             <i class="fas fa-chalkboard-teacher"></i>
