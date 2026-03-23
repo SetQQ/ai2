@@ -39,36 +39,36 @@ $isMasterDataActive = in_array($currentPage, $masterDataPages);
                     <ul class="collapse list-unstyled <?= $isMasterDataActive ? 'show' : '' ?>" id="masterDataSubmenu">
                         <li class="<?= ($currentPage == 'teachers.php') ? 'active' : '' ?>"><a href="teachers.php"><i class="fas fa-chalkboard-teacher me-2"></i> ข้อมูลครู</a></li>
                         <li class="<?= ($currentPage == 'students.php') ? 'active' : '' ?>"><a href="students.php"><i class="fas fa-user-graduate me-2"></i> ข้อมูลนักเรียน</a></li>
-                        <li class="<?= ($currentPage == 'subjects.php') ? 'active' : '' ?>"><a href="#"><i class="fas fa-book me-2"></i> ข้อมูลรายวิชา</a></li>
-                        <li class="<?= ($currentPage == 'classes.php') ? 'active' : '' ?>"><a href="#"><i class="fas fa-layer-group me-2"></i> ข้อมูลระดับชั้นเรียน</a></li>
-                        <li class="<?= ($currentPage == 'classrooms.php') ? 'active' : '' ?>"><a href="#"><i class="fas fa-door-open me-2"></i> ข้อมูลห้องเรียน</a></li>
+                        <li class="<?= ($currentPage == 'subjects.php') ? 'active' : '' ?>"><a href="subjects.php"><i class="fas fa-book me-2"></i> ข้อมูลรายวิชา</a></li>
+                        <li class="<?= ($currentPage == 'classes.php') ? 'active' : '' ?>"><a href="classes.php"><i class="fas fa-layer-group me-2"></i> ข้อมูลระดับชั้นเรียน</a></li>
+                        <li class="<?= ($currentPage == 'classrooms.php') ? 'active' : '' ?>"><a href="classrooms.php"><i class="fas fa-door-open me-2"></i> ข้อมูลห้องเรียน</a></li>
                     </ul>
                 </li>
 
                 <!-- Module 2: Schedule -->
-                <li>
-                    <a href="#">
+                <li class="<?= ($currentPage == 'schedules.php') ? 'active' : '' ?>">
+                    <a href="schedules.php">
                         <i class="fas fa-calendar-alt me-2 w-20px"></i> จัดการตารางเรียน
                     </a>
                 </li>
 
                 <!-- Module 3: Grading -->
-                <li>
-                    <a href="#">
+                <li class="<?= ($currentPage == 'grades.php') ? 'active' : '' ?>">
+                    <a href="grades.php">
                         <i class="fas fa-star me-2 w-20px"></i> บันทึกผลการเรียน
                     </a>
                 </li>
 
                 <!-- Module 5: Attendance -->
-                <li>
-                    <a href="#">
+                <li class="<?= ($currentPage == 'attendance.php') ? 'active' : '' ?>">
+                    <a href="attendance.php">
                         <i class="fas fa-clipboard-user me-2 w-20px"></i> ระบบบันทึกเวลาเรียน
                     </a>
                 </li>
 
                 <!-- Module 4: Authentication & RBAC -->
-                <li>
-                    <a href="#">
+                <li class="<?= ($currentPage == 'users.php') ? 'active' : '' ?>">
+                    <a href="users.php">
                         <i class="fas fa-users-cog me-2 w-20px"></i> จัดการผู้ใช้งาน
                     </a>
                 </li>

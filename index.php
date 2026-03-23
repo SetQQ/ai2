@@ -1,4 +1,16 @@
 <?php require_once 'includes/auth_check.php'; ?>
+<?php require_once 'config/database.php'; ?>
+<?php 
+// Fetch statistics from database
+try {
+    $teacherCount = $pdo->query("SELECT COUNT(*) FROM teachers")->fetchColumn();
+    $studentCount = $pdo->query("SELECT COUNT(*) FROM students")->fetchColumn();
+    $subjectCount = $pdo->query("SELECT COUNT(*) FROM subjects")->fetchColumn();
+    $classroomCount = $pdo->query("SELECT COUNT(*) FROM classrooms")->fetchColumn();
+} catch (PDOException $e) {
+    $teacherCount = $studentCount = $subjectCount = $classroomCount = 0;
+}
+?>
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
@@ -60,7 +72,7 @@
             <h3 class="fw-bold text-primary-custom mb-0">
                 <i class="fas fa-chart-pie me-2"></i> ภาพรวมระบบ (Dashboard)
             </h3>
-            <button class="btn btn-outline-primary d-none d-md-block">
+            <button class="btn btn-outline-primary d-none d-md-block shadow-sm">
                 <i class="fas fa-download me-1"></i> ดาวน์โหลดรายงาน
             </button>
         </div>
@@ -73,7 +85,7 @@
                     <div class="card-body p-4 d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted fw-semibold mb-1">จำนวนบุคลากรครู</p>
-                            <h2 class="mb-0 text-primary-custom fw-bold">120sdsdsd</h2>
+                            <h2 class="mb-0 text-primary-custom fw-bold" id="stat-teacher"><?= number_format($teacherCount) ?></h2>
                         </div>
                         <div class="icon-box text-primary-custom">
                             <i class="fas fa-chalkboard-teacher"></i>
@@ -87,7 +99,7 @@
                     <div class="card-body p-4 d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted fw-semibold mb-1">จำนวนนักเรียนทั้งหมด</p>
-                            <h2 class="mb-0 text-success fw-bold">2,450</h2>
+                            <h2 class="mb-0 text-success fw-bold" id="stat-student"><?= number_format($studentCount) ?></h2>
                         </div>
                         <div class="icon-box text-success" style="background-color: rgba(25,135,84,0.1);">
                             <i class="fas fa-user-graduate"></i>
@@ -101,7 +113,7 @@
                     <div class="card-body p-4 d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted fw-semibold mb-1">รายวิชาที่เปิดสอน</p>
-                            <h2 class="mb-0 text-warning fw-bold">86</h2>
+                            <h2 class="mb-0 text-warning fw-bold" id="stat-subject"><?= number_format($subjectCount) ?></h2>
                         </div>
                         <div class="icon-box text-warning" style="background-color: rgba(255,193,7,0.1);">
                             <i class="fas fa-book"></i>
@@ -115,7 +127,7 @@
                     <div class="card-body p-4 d-flex justify-content-between align-items-center">
                         <div>
                             <p class="text-muted fw-semibold mb-1">ห้องเรียนทั้งหมด</p>
-                            <h2 class="mb-0 text-info fw-bold">64</h2>
+                            <h2 class="mb-0 text-info fw-bold" id="stat-classroom"><?= number_format($classroomCount) ?></h2>
                         </div>
                         <div class="icon-box text-info" style="background-color: rgba(13,202,240,0.1);">
                             <i class="fas fa-door-open"></i>
@@ -151,7 +163,32 @@
             </div>
         </div>
 
-    </div>
+</div>
 </div>
 
 <?php include 'includes/footer.php'; ?>
+
+<script>
+$(document).ready(function() {
+    // Real-time Database Polling
+    function fetchDashboardStats() {
+        $.ajax({
+            url: 'backend/dashboard_realtime.php',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Update UI using toLocaleString for number formats (commas)
+                    $('#stat-teacher').text(Number(response.data.teacher_count).toLocaleString('th-TH'));
+                    $('#stat-student').text(Number(response.data.student_count).toLocaleString('th-TH'));
+                    $('#stat-subject').text(Number(response.data.subject_count).toLocaleString('th-TH'));
+                    $('#stat-classroom').text(Number(response.data.classroom_count).toLocaleString('th-TH'));
+                }
+            }
+        });
+    }
+
+    // Refresh dashboard stats every 5 seconds (5000 ms) automatically without reloading the page
+    setInterval(fetchDashboardStats, 5000);
+});
+</script>
