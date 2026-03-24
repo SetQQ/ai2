@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -64,7 +65,7 @@ try {
     switch ($action) {
         case 'create':
             $profileImage = handleImageUpload();
-            $stmt = $pdo->prepare("INSERT INTO students (student_code, first_name, last_name, class_level, phone, parent_phone, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO students (student_code, first_name, last_name, class_level, phone, parent_phone, dob, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['student_code'],
                 $_POST['first_name'],
@@ -72,6 +73,7 @@ try {
                 $_POST['class_level'] ?? null,
                 $_POST['phone'] ?? null,
                 $_POST['parent_phone'] ?? null,
+                !empty($_POST['dob']) ? $_POST['dob'] : null,
                 $profileImage
             ]);
             echo json_encode(['status' => 'success', 'message' => 'เพิ่มข้อมูลสำเร็จ']);
@@ -96,12 +98,12 @@ try {
                     unlink($uploadDir . $oldImage);
                 }
                 
-                $stmt = $pdo->prepare("UPDATE students SET student_code = ?, first_name = ?, last_name = ?, class_level = ?, phone = ?, parent_phone = ?, profile_image = ? WHERE id = ?");
-                $stmt->execute([$_POST['student_code'], $_POST['first_name'], $_POST['last_name'], $_POST['class_level'] ?? null, $_POST['phone'] ?? null, $_POST['parent_phone'] ?? null, $profileImage, $id]);
+                $stmt = $pdo->prepare("UPDATE students SET student_code = ?, first_name = ?, last_name = ?, class_level = ?, phone = ?, parent_phone = ?, dob = ?, profile_image = ? WHERE id = ?");
+                $stmt->execute([$_POST['student_code'], $_POST['first_name'], $_POST['last_name'], $_POST['class_level'] ?? null, $_POST['phone'] ?? null, $_POST['parent_phone'] ?? null, !empty($_POST['dob']) ? $_POST['dob'] : null, $profileImage, $id]);
             } else {
                 // Update without changing image
-                $stmt = $pdo->prepare("UPDATE students SET student_code = ?, first_name = ?, last_name = ?, class_level = ?, phone = ?, parent_phone = ? WHERE id = ?");
-                $stmt->execute([$_POST['student_code'], $_POST['first_name'], $_POST['last_name'], $_POST['class_level'] ?? null, $_POST['phone'] ?? null, $_POST['parent_phone'] ?? null, $id]);
+                $stmt = $pdo->prepare("UPDATE students SET student_code = ?, first_name = ?, last_name = ?, class_level = ?, phone = ?, parent_phone = ?, dob = ? WHERE id = ?");
+                $stmt->execute([$_POST['student_code'], $_POST['first_name'], $_POST['last_name'], $_POST['class_level'] ?? null, $_POST['phone'] ?? null, $_POST['parent_phone'] ?? null, !empty($_POST['dob']) ? $_POST['dob'] : null, $id]);
             }
             echo json_encode(['status' => 'success', 'message' => 'แก้ไขข้อมูลสำเร็จ']);
             break;

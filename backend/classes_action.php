@@ -1,4 +1,5 @@
 <?php
+session_name('SCHOOL_SECURE_SESSION');
 session_start();
 require_once '../config/database.php';
 
@@ -8,21 +9,23 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+
 $action = $_REQUEST['action'] ?? '';
 
 switch ($action) {
     case 'create':
+        $class_code = $_POST['class_code'] ?? '';
         $class_name = $_POST['class_name'] ?? '';
         $level = $_POST['level'] ?? '';
 
-        if (empty($class_name)) {
+        if (empty($class_code) || empty($class_name)) {
             echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ครบถ้วน']);
             exit;
         }
 
         try {
-            $stmt = $pdo->prepare("INSERT INTO classes (class_name, level) VALUES (?, ?)");
-            $stmt->execute([$class_name, $level]);
+            $stmt = $pdo->prepare("INSERT INTO classes (class_code, class_name, level) VALUES (?, ?, ?)");
+            $stmt->execute([$class_code, $class_name, $level]);
             echo json_encode(['status' => 'success', 'message' => 'เพิ่มระดับชั้นเรียนเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล: ' . $e->getMessage()]);
@@ -42,17 +45,18 @@ switch ($action) {
 
     case 'update':
         $id = $_POST['id'] ?? '';
+        $class_code = $_POST['class_code'] ?? '';
         $class_name = $_POST['class_name'] ?? '';
         $level = $_POST['level'] ?? '';
 
-        if (empty($id) || empty($class_name)) {
+        if (empty($id) || empty($class_code) || empty($class_name)) {
             echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ครบถ้วน']);
             exit;
         }
 
         try {
-            $stmt = $pdo->prepare("UPDATE classes SET class_name = ?, level = ? WHERE id = ?");
-            $stmt->execute([$class_name, $level, $id]);
+            $stmt = $pdo->prepare("UPDATE classes SET class_code = ?, class_name = ?, level = ? WHERE id = ?");
+            $stmt->execute([$class_code, $class_name, $level, $id]);
             echo json_encode(['status' => 'success', 'message' => 'แก้ไขข้อมูลเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล: ' . $e->getMessage()]);

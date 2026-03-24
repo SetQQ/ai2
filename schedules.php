@@ -131,6 +131,7 @@ include 'includes/sidebar.php';
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4">
+            <input type="hidden" name="id" id="scheduleId" value="">
             <input type="hidden" name="action" id="actionType" value="create">
             <input type="hidden" name="class_id" id="modalClassId" value="">
             
@@ -282,6 +283,9 @@ function loadSchedules(classId) {
                             <td>${schedule.teacher_fname} ${schedule.teacher_lname}</td>
                             <td><i class="fas fa-door-open text-muted me-1"></i> ${schedule.room_name}</td>
                             <td>
+                                <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(schedule).replace(/'/g, "&apos;")})' title="แก้ไขคาบเรียน">
+                                    <i class="fas fa-edit"></i> แก้ไข
+                                </button>
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteSchedule(${schedule.id})" title="ลบคาบเรียน">
                                     <i class="fas fa-trash-alt"></i> ลบ
                                 </button>
@@ -300,7 +304,25 @@ function openAddModal() {
     if(!currentClassId) return;
 
     $('#scheduleForm')[0].reset();
+    $('#scheduleId').val('');
+    $('#actionType').val('create');
     $('#modalClassId').val(currentClassId);
+    $('#scheduleModalLabel').text('เพิ่มคาบเรียนสำหรับชั้นนี้');
+    $('#scheduleModal').modal('show');
+}
+
+function openEditModal(schedule) {
+    $('#scheduleForm')[0].reset();
+    $('#scheduleId').val(schedule.id);
+    $('#actionType').val('update');
+    $('#modalClassId').val(schedule.class_id);
+    $('#dayOfWeek').val(schedule.day_of_week);
+    $('#startTime').val(schedule.start_time.substring(0,5));
+    $('#endTime').val(schedule.end_time.substring(0,5));
+    $('#subjectId').val(schedule.subject_id);
+    $('#teacherId').val(schedule.teacher_id);
+    $('#classroomId').val(schedule.classroom_id);
+    $('#scheduleModalLabel').text('แก้ไขคาบเรียน');
     $('#scheduleModal').modal('show');
 }
 

@@ -49,6 +49,7 @@ include 'includes/sidebar.php';
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
+                                <th>รหัสชั้นเรียน</th>
                                 <th>ชื่อชั้นเรียน</th>
                                 <th>ระดับช่วงชั้น</th>
                                 <th class="text-center">จัดการ</th>
@@ -78,6 +79,10 @@ include 'includes/sidebar.php';
             <input type="hidden" id="classId" name="id">
             <input type="hidden" id="actionType" name="action" value="create">
 
+            <div class="mb-3">
+                <label for="classCode" class="form-label">รหัสชั้นเรียน</label>
+                <input type="text" class="form-control" id="classCode" name="class_code" required>
+            </div>
             <div class="mb-3">
                 <label for="className" class="form-label">ชื่อชั้นเรียน (เช่น ม.1, ป.6)</label>
                 <input type="text" class="form-control" id="className" name="class_name" required>
@@ -139,7 +144,8 @@ function loadClasses() {
             if (response.data && response.data.length > 0) {
                 $.each(response.data, function(index, cls) {
                     html += `<tr>
-                                <td class="fw-semibold text-primary-custom">${cls.class_name}</td>
+                                <td class="fw-semibold text-primary-custom">${cls.class_code || '-'}</td>
+                                <td>${cls.class_name}</td>
                                 <td>${cls.level || '-'}</td>
                                 <td class="text-center">
                                     <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(cls).replace(/'/g, "&apos;")})'>
@@ -152,12 +158,12 @@ function loadClasses() {
                              </tr>`;
                 });
             } else {
-                html = '<tr><td colspan="3" class="text-center text-muted">ไม่มีข้อมูลระดับชั้นเรียนในระบบ</td></tr>';
+                html = '<tr><td colspan="4" class="text-center text-muted">ไม่มีข้อมูลระดับชั้นเรียนในระบบ</td></tr>';
             }
             $('#classTableBody').html(html);
         },
         error: function() {
-            $('#classTableBody').html('<tr><td colspan="3" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
+            $('#classTableBody').html('<tr><td colspan="4" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
         }
     });
 }
@@ -173,6 +179,7 @@ function openAddModal() {
 function openEditModal(cls) {
     $('#classForm')[0].reset();
     $('#classId').val(cls.id);
+    $('#classCode').val(cls.class_code);
     $('#className').val(cls.class_name);
     $('#level').val(cls.level);
     $('#actionType').val('update');

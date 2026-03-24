@@ -1,4 +1,5 @@
 <?php
+session_name('SCHOOL_SECURE_SESSION');
 session_start();
 require_once '../config/database.php';
 
@@ -7,6 +8,7 @@ if (!isset($_SESSION['user_id'])) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
     exit;
 }
+
 
 $action = $_REQUEST['action'] ?? '';
 

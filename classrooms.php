@@ -58,6 +58,7 @@ $teachersList = $stmtTeachers->fetchAll(PDO::FETCH_ASSOC);
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
+                                <th>รหัสห้อง (Room Code)</th>
                                 <th>ระดับชั้น</th>
                                 <th>ชื่อห้องเรียน/ห้อง</th>
                                 <th>ครูประจำชั้น</th>
@@ -89,6 +90,10 @@ $teachersList = $stmtTeachers->fetchAll(PDO::FETCH_ASSOC);
             <input type="hidden" id="classroomId" name="id">
             <input type="hidden" id="actionType" name="action" value="create">
 
+            <div class="mb-3">
+                <label for="roomCode" class="form-label">รหัสห้อง (เช่น R401)</label>
+                <input type="text" class="form-control" id="roomCode" name="room_code" required>
+            </div>
             <div class="mb-3">
                 <label for="classId" class="form-label">ระดับชั้นเรียน</label>
                 <select class="form-select" id="classId" name="class_id" required>
@@ -170,7 +175,8 @@ function loadClassrooms() {
                     let teacherName = room.teacher_id ? `${room.teacher_first_name} ${room.teacher_last_name}` : '<span class="text-muted">ไม่ระบุ</span>';
                     
                     html += `<tr>
-                                <td class="fw-semibold text-primary-custom">${room.class_name}</td>
+                                <td class="fw-semibold text-primary-custom">${room.room_code || '-'}</td>
+                                <td>${room.class_name}</td>
                                 <td>${room.room_name}</td>
                                 <td>${teacherName}</td>
                                 <td>${room.capacity}</td>
@@ -185,12 +191,12 @@ function loadClassrooms() {
                              </tr>`;
                 });
             } else {
-                html = '<tr><td colspan="5" class="text-center text-muted">ไม่มีข้อมูลห้องเรียนในระบบ</td></tr>';
+                html = '<tr><td colspan="6" class="text-center text-muted">ไม่มีข้อมูลห้องเรียนในระบบ</td></tr>';
             }
             $('#classroomTableBody').html(html);
         },
         error: function() {
-            $('#classroomTableBody').html('<tr><td colspan="5" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
+            $('#classroomTableBody').html('<tr><td colspan="6" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
         }
     });
 }
@@ -206,6 +212,7 @@ function openAddModal() {
 function openEditModal(room) {
     $('#classroomForm')[0].reset();
     $('#classroomId').val(room.id);
+    $('#roomCode').val(room.room_code);
     $('#classId').val(room.class_id);
     $('#roomName').val(room.room_name);
     $('#teacherId').val(room.teacher_id || '');

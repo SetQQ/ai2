@@ -11,10 +11,16 @@ CREATE TABLE IF NOT EXISTS students (
     class_level VARCHAR(50) DEFAULT NULL,
     phone VARCHAR(20) DEFAULT NULL,
     parent_phone VARCHAR(20) DEFAULT NULL,
+    dob DATE DEFAULT NULL,
     profile_image VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ";
 $pdo->exec($sql);
+
+// Alter table if exists but missing new columns
+try {
+    $pdo->exec("ALTER TABLE students ADD COLUMN dob DATE DEFAULT NULL AFTER last_name");
+} catch(PDOException $e) {}
 ?>

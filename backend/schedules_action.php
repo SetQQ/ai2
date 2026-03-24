@@ -1,4 +1,5 @@
 <?php
+session_name('SCHOOL_SECURE_SESSION');
 session_start();
 require_once '../config/database.php';
 
@@ -6,6 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
     exit;
 }
+
 
 $action = $_POST['action'] ?? '';
 
@@ -69,6 +71,43 @@ switch ($action) {
             $stmt = $pdo->prepare("INSERT INTO schedules (class_id, subject_id, teacher_id, classroom_id, day_of_week, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$class_id, $subject_id, $teacher_id, $classroom_id, $day_of_week, $start_time, $end_time]);
             echo json_encode(['status' => 'success', 'message' => 'เพิ่มข้อมูลตารางเรียนเรียบร้อยแล้ว']);
+        } catch (PDOException $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        break;
+
+    case 'update':
+        $id = $_POST['id'] ?? '';
+        $class_id = $_POST['class_id'] ?? '';
+        $subject_id = $_POST['subject_id'] ?? '';
+        $teacher_id = $_POST['teacher_id'] ?? '';
+        $classroom_id = $_POST['classroom_id'] ?? '';
+        $day_of_week = $_POST['day_of_week'] ?? '';
+        $start_time = $_POST['start_time'] ?? '';
+        $end_time = $_POST['end_time'] ?? '';
+
+        if (empty($id) || empty($class_id) || empty($subject_id) || empty($teacher_id) || empty($classroom_id) || empty($day_of_week) || empty($start_time) || empty($end_time)) {
+            echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ครบถ้วน']);
+            exit;
+        }
+
+        try {
+            // Check for time overlap for the same teacher or classroom (Exclude current record)
+            $sqlCheck = "SELECT id FROM schedules 
+                         WHERE day_of_week = ? 
+                         AND ((start_time < ? AND end_time > ?) OR (start_time < ? AND end_time > ?))
+                         AND (teacher_id = ? OR classroom_id = ? OR class_id = ?)
+                         AND id != ?";
+            $stmtCheck = $pdo->prepare($sqlCheck);
+            $stmtCheck->execute([$day_of_week, $end_time, $start_time, $end_time, $start_time, $teacher_id, $classroom_id, $class_id, $id]);
+            if ($stmtCheck->rowCount() > 0) {
+                echo json_encode(['status' => 'error', 'message' => 'มีตารางเวลาทับซ้อน (ครู, ห้องเรียน, หรือชั้นเรียนซ้ำในเวลาเดียวกัน)']);
+                exit;
+            }
+
+            $stmt = $pdo->prepare("UPDATE schedules SET class_id = ?, subject_id = ?, teacher_id = ?, classroom_id = ?, day_of_week = ?, start_time = ?, end_time = ? WHERE id = ?");
+            $stmt->execute([$class_id, $subject_id, $teacher_id, $classroom_id, $day_of_week, $start_time, $end_time, $id]);
+            echo json_encode(['status' => 'success', 'message' => 'แก้ไขข้อมูลตารางเรียนเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
         }

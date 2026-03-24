@@ -1,4 +1,5 @@
 <?php
+session_name('SCHOOL_SECURE_SESSION');
 session_start();
 require_once '../config/database.php';
 
@@ -8,23 +9,25 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+
 $action = $_REQUEST['action'] ?? '';
 
 switch ($action) {
     case 'create':
+        $room_code = $_POST['room_code'] ?? '';
         $class_id = $_POST['class_id'] ?? '';
         $room_name = $_POST['room_name'] ?? '';
         $teacher_id = !empty($_POST['teacher_id']) ? $_POST['teacher_id'] : null;
         $capacity = $_POST['capacity'] ?? 40;
 
-        if (empty($class_id) || empty($room_name)) {
-            echo json_encode(['status' => 'error', 'message' => 'ข้อมูลระดับชั้นและชื่อห้องเรียนจำเป็นต้องกรอก']);
+        if (empty($room_code) || empty($class_id) || empty($room_name)) {
+            echo json_encode(['status' => 'error', 'message' => 'รหัสห้อง, ระดับชั้นและชื่อห้องเรียนจำเป็นต้องกรอก']);
             exit;
         }
 
         try {
-            $stmt = $pdo->prepare("INSERT INTO classrooms (class_id, room_name, teacher_id, capacity) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$class_id, $room_name, $teacher_id, $capacity]);
+            $stmt = $pdo->prepare("INSERT INTO classrooms (room_code, class_id, room_name, teacher_id, capacity) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$room_code, $class_id, $room_name, $teacher_id, $capacity]);
             echo json_encode(['status' => 'success', 'message' => 'เพิ่มห้องเรียนเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล: ' . $e->getMessage()]);
@@ -48,19 +51,20 @@ switch ($action) {
 
     case 'update':
         $id = $_POST['id'] ?? '';
+        $room_code = $_POST['room_code'] ?? '';
         $class_id = $_POST['class_id'] ?? '';
         $room_name = $_POST['room_name'] ?? '';
         $teacher_id = !empty($_POST['teacher_id']) ? $_POST['teacher_id'] : null;
         $capacity = $_POST['capacity'] ?? 40;
 
-        if (empty($id) || empty($class_id) || empty($room_name)) {
-            echo json_encode(['status' => 'error', 'message' => 'ข้อมูลระดับชั้นและชื่อห้องเรียนจำเป็นต้องกรอก']);
+        if (empty($id) || empty($room_code) || empty($class_id) || empty($room_name)) {
+            echo json_encode(['status' => 'error', 'message' => 'รหัสห้อง, ระดับชั้นและชื่อห้องเรียนจำเป็นต้องกรอก']);
             exit;
         }
 
         try {
-            $stmt = $pdo->prepare("UPDATE classrooms SET class_id = ?, room_name = ?, teacher_id = ?, capacity = ? WHERE id = ?");
-            $stmt->execute([$class_id, $room_name, $teacher_id, $capacity, $id]);
+            $stmt = $pdo->prepare("UPDATE classrooms SET room_code = ?, class_id = ?, room_name = ?, teacher_id = ?, capacity = ? WHERE id = ?");
+            $stmt->execute([$room_code, $class_id, $room_name, $teacher_id, $capacity, $id]);
             echo json_encode(['status' => 'success', 'message' => 'แก้ไขข้อมูลเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล: ' . $e->getMessage()]);

@@ -52,6 +52,7 @@ include 'includes/sidebar.php';
                                 <th>รหัสนักเรียน</th>
                                 <th>รูปโปรไฟล์</th>
                                 <th>ชื่อ-นามสกุล</th>
+                                <th>วันเกิด</th>
                                 <th>ระดับชั้น</th>
                                 <th>การติดต่อ</th>
                                 <th class="text-center">จัดการ</th>
@@ -95,9 +96,15 @@ include 'includes/sidebar.php';
                     <input type="text" class="form-control" id="lastName" name="last_name" required>
                 </div>
             </div>
-            <div class="mb-3">
-                <label for="classLevel" class="form-label">ระดับชั้นเรียน (เช่น ม.1/1)</label>
-                <input type="text" class="form-control" id="classLevel" name="class_level">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="classLevel" class="form-label">ระดับชั้นเรียน (เช่น ม.1/1)</label>
+                    <input type="text" class="form-control" id="classLevel" name="class_level">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="dob" class="form-label">วัน/เดือน/ปีเกิด</label>
+                    <input type="date" class="form-control" id="dob" name="dob">
+                </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -172,11 +179,19 @@ function loadStudents() {
                     
                     let phoneTxt = student.phone ? `นร: ${student.phone}` : 'นร: -';
                     let parentPhoneTxt = student.parent_phone ? `<br><small class="text-muted">ผปค: ${student.parent_phone}</small>` : '';
+                    
+                    // Format dob nicely
+                    let dobTxt = '-';
+                    if (student.dob) {
+                        let d = new Date(student.dob);
+                        dobTxt = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+                    }
 
                     html += `<tr>
                                 <td class="fw-semibold text-primary-custom">${student.student_code}</td>
                                 <td><img src="${imgSrc}" class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover;" alt="Profile"></td>
                                 <td>${student.first_name} ${student.last_name}</td>
+                                <td>${dobTxt}</td>
                                 <td><span class="badge bg-info text-dark">${student.class_level || '-'}</span></td>
                                 <td>${phoneTxt} ${parentPhoneTxt}</td>
                                 <td class="text-center">
@@ -211,6 +226,7 @@ function openEditModal(student) {
     $('#studentCode').val(student.student_code);
     $('#firstName').val(student.first_name);
     $('#lastName').val(student.last_name);
+    $('#dob').val(student.dob);
     $('#classLevel').val(student.class_level);
     $('#phone').val(student.phone);
     $('#parentPhone').val(student.parent_phone);

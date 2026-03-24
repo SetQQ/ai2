@@ -10,6 +10,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
