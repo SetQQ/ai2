@@ -4,8 +4,8 @@ session_start();
 require_once '../config/database.php';
 
 // Ensure user is logged in
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    echo json_encode(['status' => 'error', 'message' => 'Forbidden']);
     exit;
 }
 
@@ -14,12 +14,14 @@ $action = $_REQUEST['action'] ?? '';
 
 switch ($action) {
     case 'create':
-        $class_code = $_POST['class_code'] ?? '';
+        $class_code = $_POST['class_code'] ?? null;
+        if(empty($class_code)) $class_code = null;
         $class_name = $_POST['class_name'] ?? '';
-        $level = $_POST['level'] ?? '';
+        $level = $_POST['level'] ?? null;
+        if(empty($level)) $level = null;
 
-        if (empty($class_code) || empty($class_name)) {
-            echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ครบถ้วน']);
+        if (empty($class_name)) {
+            echo json_encode(['status' => 'error', 'message' => 'บรรทัดชื่อชั้นเรียนห้ามว่างเปล่า']);
             exit;
         }
 
@@ -28,7 +30,11 @@ switch ($action) {
             $stmt->execute([$class_code, $class_name, $level]);
             echo json_encode(['status' => 'success', 'message' => 'เพิ่มระดับชั้นเรียนเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
-            echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล: ' . $e->getMessage()]);
+            if ($e->getCode() == 23000) {
+                echo json_encode(['status' => 'error', 'message' => 'ชื่อชั้นเรียนหรือรหัสชั้นเรียน นี้มีอยู่ในระบบแล้ว']);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล: ' . $e->getMessage()]);
+            }
         }
         break;
 
@@ -45,12 +51,14 @@ switch ($action) {
 
     case 'update':
         $id = $_POST['id'] ?? '';
-        $class_code = $_POST['class_code'] ?? '';
+        $class_code = $_POST['class_code'] ?? null;
+        if(empty($class_code)) $class_code = null;
         $class_name = $_POST['class_name'] ?? '';
-        $level = $_POST['level'] ?? '';
+        $level = $_POST['level'] ?? null;
+        if(empty($level)) $level = null;
 
-        if (empty($id) || empty($class_code) || empty($class_name)) {
-            echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ครบถ้วน']);
+        if (empty($id) || empty($class_name)) {
+            echo json_encode(['status' => 'error', 'message' => 'โปรดกรอกชื่อชั้นเรียนให้ครบถ้วน']);
             exit;
         }
 
@@ -59,7 +67,11 @@ switch ($action) {
             $stmt->execute([$class_code, $class_name, $level, $id]);
             echo json_encode(['status' => 'success', 'message' => 'แก้ไขข้อมูลเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
-            echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล: ' . $e->getMessage()]);
+            if ($e->getCode() == 23000) {
+                echo json_encode(['status' => 'error', 'message' => 'ชื่อชั้นเรียนหรือรหัสชั้นเรียน นี้มีอยู่ในระบบแล้ว']);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล: ' . $e->getMessage()]);
+            }
         }
         break;
 

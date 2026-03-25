@@ -13,22 +13,33 @@ $action = $_POST['action'] ?? '';
 
 switch ($action) {
     case 'get_students':
-        $class_level = $_POST['class_level'] ?? '';
+        $class_id = $_POST['class_id'] ?? '';
         $attendance_date = $_POST['attendance_date'] ?? '';
 
-        if (empty($class_level) || empty($attendance_date)) {
+        if (empty($class_id) || empty($attendance_date)) {
             echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ครบถ้วน']);
             exit;
+        }
+
+        // Authorization check for Teacher
+        if ($_SESSION['role'] === 'teacher') {
+            $teacher_id = $_SESSION['teacher_id'] ?? 0;
+            $stmtCheck = $pdo->prepare("SELECT id FROM schedules WHERE teacher_id = ? AND class_id = ? LIMIT 1");
+            $stmtCheck->execute([$teacher_id, $class_id]);
+            if ($stmtCheck->rowCount() === 0) {
+                echo json_encode(['status' => 'error', 'message' => 'คุณไม่ได้สอนในชั้นเรียนนี้ ไม่สามารถดูรายชื่อได้']);
+                exit;
+            }
         }
 
         try {
             $sql = "SELECT s.id as student_id, s.student_code, s.first_name, s.last_name, a.status, a.remarks
                     FROM students s
                     LEFT JOIN attendance a ON s.id = a.student_id AND a.attendance_date = ?
-                    WHERE s.class_level = ?
+                    WHERE s.class_id = ?
                     ORDER BY s.student_code ASC";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([$attendance_date, $class_level]);
+            $stmt->execute([$attendance_date, $class_id]);
             $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             echo json_encode(['status' => 'success', 'data' => $students]);
@@ -47,6 +58,21 @@ switch ($action) {
         if (empty($attendance_data) || !is_array($attendance_data) || empty($attendance_date)) {
             echo json_encode(['status' => 'error', 'message' => 'ไม่มีข้อมูลสำหรับบันทึก']);
             exit;
+        }
+
+        $class_level_string = $_POST['class_level'] ?? '';
+
+        // Authorization check for Teacher
+        if ($_SESSION['role'] === 'teacher') {
+            $teacher_id = $_SESSION['teacher_id'] ?? 0;
+            $stmtCheck = $pdo->prepare("SELECT s.id FROM schedules s 
+                                         JOIN classes c ON s.class_id = c.id 
+                                         WHERE s.teacher_id = ? AND c.class_name = ? LIMIT 1");
+            $stmtCheck->execute([$teacher_id, $class_level_string]);
+            if ($stmtCheck->rowCount() === 0) {
+                echo json_encode(['status' => 'error', 'message' => 'การดำเนินการถูกปฏิเสธ: คุณไม่มีสิทธิ์บันทึกเวลาเรียนของชั้นนี้']);
+                exit;
+            }
         }
 
         try {

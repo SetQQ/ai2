@@ -2,10 +2,21 @@
 require_once 'includes/auth_check.php'; 
 require_once 'config/database.php';
 
-// Fetch unique class levels from students for the dropdown
+// Fetch classes from classes table for the dropdown
 try {
-    $stmtClasses = $pdo->query("SELECT DISTINCT class_level FROM students WHERE class_level IS NOT NULL AND class_level != '' ORDER BY class_level ASC");
-    $classesList = $stmtClasses->fetchAll(PDO::FETCH_COLUMN);
+    if ($_SESSION['role'] === 'admin') {
+        $stmtClasses = $pdo->query("SELECT id, class_name FROM classes ORDER BY class_name ASC");
+        $classesList = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+        // Teachers only see classes they teach
+        $teacher_id = $_SESSION['teacher_id'] ?? 0;
+        $stmtClasses = $pdo->prepare("SELECT DISTINCT c.id, c.class_name 
+                                     FROM schedules s
+                                     JOIN classes c ON s.class_id = c.id
+                                     WHERE s.teacher_id = ?");
+        $stmtClasses->execute([$teacher_id]);
+        $classesList = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
+    }
 } catch (PDOException $e) {
     $classesList = [];
 }
@@ -51,35 +62,42 @@ include 'includes/sidebar.php';
 
     <!-- Page Content -->
     <div class="container-fluid p-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold text-primary-custom mb-0">
-                <i class="fas fa-clipboard-user me-2"></i> ระบบบันทึกเวลาเรียน
-            </h3>
+        <div class="row mb-4">
+            <div class="col-12 text-center text-md-start">
+                <h3 class="fw-bold text-primary-custom mb-2">
+                    <i class="fas fa-clipboard-user me-2"></i> ระบบบันทึกเวลาเรียน
+                </h3>
+                <p class="text-muted mb-0">กรุณาเลือกชั้นเรียนและวันที่เพื่อเริ่มบันทึกการเข้าเรียน</p>
+            </div>
         </div>
 
-        <!-- Filter Card -->
-        <div class="card border-0 shadow-sm rounded-3 mb-4">
-            <div class="card-body p-4 bg-light">
-                <form id="filterForm" class="row g-3 align-items-end">
-                    <div class="col-md-4">
-                        <label for="class_level" class="form-label fw-bold">ระดับชั้น/ห้อง</label>
-                        <select class="form-select border-primary" id="class_level" name="class_level" required>
-                            <option value="">-- เลือกระดับชั้น --</option>
-                            <?php foreach($classesList as $c): ?>
-                                <option value="<?= htmlspecialchars($c) ?>"><?= htmlspecialchars($c) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+        <div class="row mb-4 justify-content-center">
+            <div class="col-md-11 col-lg-10">
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                    <div class="card-body p-4 bg-white">
+                        <form id="filterForm" class="row g-3 align-items-center">
+                            <div class="col-md-4">
+                                <label for="class_id" class="form-label fw-bold text-dark">ระดับชั้น/ห้อง</label>
+                                <select class="form-select form-select-lg border-primary shadow-sm" id="class_id" name="class_id" required>
+                                    <option value="">-- เลือกระดับชั้น --</option>
+                                    <?php foreach($classesList as $c): ?>
+                                        <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['class_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="attendance_date" class="form-label fw-bold text-dark">วันที่เช็คชื่อ</label>
+                                <input type="date" class="form-control form-control-lg border-primary shadow-sm" id="attendance_date" name="attendance_date" value="<?= $today ?>" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label d-none d-md-block">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary-custom btn-lg w-100 fw-bold shadow-sm">
+                                    <i class="fas fa-search me-2"></i> ดึงรายชื่อนักเรียน
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="col-md-4">
-                        <label for="attendance_date" class="form-label fw-bold">วันที่เช็คชื่อ</label>
-                        <input type="date" class="form-control border-primary" id="attendance_date" name="attendance_date" value="<?= $today ?>" required>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary-custom w-100 fw-bold shadow-sm">
-                            <i class="fas fa-users mb-1"></i> ดึงรายชื่อนักเรียน
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
 
@@ -133,8 +151,8 @@ $(document).ready(function() {
     $('#filterForm').on('submit', function(e) {
         e.preventDefault();
         
-        let formData = $(this).serialize();
-        formData += '&action=get_students';
+        let class_id = $('#class_id').val();
+        let attendance_date = $('#attendance_date').val();
 
         let btn = $(this).find('button[type="submit"]');
         let originalText = btn.html();
@@ -144,7 +162,7 @@ $(document).ready(function() {
         $.ajax({
             url: 'backend/attendance_action.php',
             type: 'POST',
-            data: formData,
+            data: { action: 'get_students', class_id: class_id, attendance_date: attendance_date },
             dataType: 'json',
             success: function(response) {
                 btn.html(originalText);
@@ -156,11 +174,11 @@ $(document).ready(function() {
                     $('#noDataAlert').hide();
                     $('#attendanceContainer').fadeIn();
                 } else {
-                    alert('Error: ' + response.message);
+                    Swal.fire('ข้อผิดพลาด', response.message, 'error');
                 }
             },
             error: function() {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
                 btn.html(originalText);
                 btn.prop('disabled', false);
             }
@@ -254,7 +272,7 @@ function saveAttendance() {
     });
     
     let attendance_date = $('#attendance_date').val();
-    let class_level = $('#class_level').val();
+    let class_id = $('#class_id').val();
     
     let btn = $('#saveAttendanceBtn');
     let originalText = btn.html();
@@ -267,7 +285,7 @@ function saveAttendance() {
         data: {
             action: 'save_attendance',
             attendance_date: attendance_date,
-            class_level: class_level,
+            class_id: class_id,
             attendance_data: JSON.stringify(payload)
         },
         dataType: 'json',
@@ -275,13 +293,13 @@ function saveAttendance() {
             btn.html(originalText);
             btn.prop('disabled', false);
             if (response.status === 'success') {
-                alert('บันทึกข้อมูลการเช็คชื่อเข้าเรียนเรียบร้อยแล้ว');
+                Swal.fire('สำเร็จ!', 'บันทึกข้อมูลการเช็คชื่อเข้าเรียนเรียบร้อยแล้ว', 'success');
             } else {
-                alert('Error: ' + response.message);
+                Swal.fire('ข้อผิดพลาด', response.message, 'error');
             }
         },
         error: function() {
-            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
             btn.html(originalText);
             btn.prop('disabled', false);
         }

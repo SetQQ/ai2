@@ -5,8 +5,8 @@ session_start();
 require_once '../config/database.php';
 
 // Allow only Admin or Teacher to manage
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    echo json_encode(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์ดำเนินการนี้ (Admin Only)']);
     exit;
 }
 
@@ -65,11 +65,12 @@ try {
     switch ($action) {
         case 'create':
             $profileImage = handleImageUpload();
-            $stmt = $pdo->prepare("INSERT INTO teachers (teacher_code, first_name, last_name, phone, line_id, department, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO teachers (teacher_code, first_name, last_name, user_id, phone, line_id, department, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['teacher_code'],
                 $_POST['first_name'],
                 $_POST['last_name'],
+                !empty($_POST['user_id']) ? $_POST['user_id'] : null,
                 $_POST['phone'] ?? null,
                 $_POST['line_id'] ?? null,
                 $_POST['department'],
@@ -97,12 +98,12 @@ try {
                     unlink($uploadDir . $oldImage);
                 }
                 
-                $stmt = $pdo->prepare("UPDATE teachers SET teacher_code = ?, first_name = ?, last_name = ?, phone = ?, line_id = ?, department = ?, profile_image = ? WHERE id = ?");
-                $stmt->execute([$_POST['teacher_code'], $_POST['first_name'], $_POST['last_name'], $_POST['phone'] ?? null, $_POST['line_id'] ?? null, $_POST['department'], $profileImage, $id]);
+                $stmt = $pdo->prepare("UPDATE teachers SET teacher_code = ?, first_name = ?, last_name = ?, user_id = ?, phone = ?, line_id = ?, department = ?, profile_image = ? WHERE id = ?");
+                $stmt->execute([$_POST['teacher_code'], $_POST['first_name'], $_POST['last_name'], !empty($_POST['user_id']) ? $_POST['user_id'] : null, $_POST['phone'] ?? null, $_POST['line_id'] ?? null, $_POST['department'], $profileImage, $id]);
             } else {
                 // Update without changing image
-                $stmt = $pdo->prepare("UPDATE teachers SET teacher_code = ?, first_name = ?, last_name = ?, phone = ?, line_id = ?, department = ? WHERE id = ?");
-                $stmt->execute([$_POST['teacher_code'], $_POST['first_name'], $_POST['last_name'], $_POST['phone'] ?? null, $_POST['line_id'] ?? null, $_POST['department'], $id]);
+                $stmt = $pdo->prepare("UPDATE teachers SET teacher_code = ?, first_name = ?, last_name = ?, user_id = ?, phone = ?, line_id = ?, department = ? WHERE id = ?");
+                $stmt->execute([$_POST['teacher_code'], $_POST['first_name'], $_POST['last_name'], !empty($_POST['user_id']) ? $_POST['user_id'] : null, $_POST['phone'] ?? null, $_POST['line_id'] ?? null, $_POST['department'], $id]);
             }
             echo json_encode(['status' => 'success', 'message' => 'แก้ไขข้อมูลสำเร็จ']);
             break;

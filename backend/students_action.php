@@ -5,8 +5,8 @@ session_start();
 require_once '../config/database.php';
 
 // Allow only Admin or Teacher to manage
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    echo json_encode(['status' => 'error', 'message' => 'คุณไม่มีสิทธิ์ดำเนินการนี้ (Admin Only)']);
     exit;
 }
 
@@ -19,6 +19,29 @@ $uploadDir = '../uploads/profiles/';
 // Create directory if it doesn't exist securely
 if (!file_exists($uploadDir)) {
     mkdir($uploadDir, 0755, true);
+}
+
+// Global Class Management (Find-or-Create)
+function findOrCreateClass($pdo, $className) {
+    if (empty($className)) return null;
+    $className = trim($className);
+    
+    // 1. Search for existing class
+    $stmt = $pdo->prepare("SELECT id FROM classes WHERE class_name = ?");
+    $stmt->execute([$className]);
+    $classId = $stmt->fetchColumn();
+    
+    if ($classId) return $classId;
+    
+    // 2. Create new class if not found
+    $level = 'Junior High'; // Default
+    if (strpos($className, 'ม.4') !== false || strpos($className, 'ม.5') !== false || strpos($className, 'ม.6') !== false) {
+        $level = 'Senior High';
+    }
+    
+    $stmt = $pdo->prepare("INSERT INTO classes (class_name, level) VALUES (?, ?)");
+    $stmt->execute([$className, $level]);
+    return $pdo->lastInsertId();
 }
 
 // Function to handle secure image upload
@@ -65,15 +88,22 @@ try {
     switch ($action) {
         case 'create':
             $profileImage = handleImageUpload();
-            $stmt = $pdo->prepare("INSERT INTO students (student_code, first_name, last_name, class_level, phone, parent_phone, dob, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $className = $_POST['class_name'] ?? '';
+            $classId = findOrCreateClass($pdo, $className);
+            
+            $stmt = $pdo->prepare("INSERT INTO students (student_code, first_name, last_name, gender, class_id, class_level, phone, parent_phone, dob, address, status, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['student_code'],
                 $_POST['first_name'],
                 $_POST['last_name'],
-                $_POST['class_level'] ?? null,
+                $_POST['gender'] ?? null,
+                $classId,
+                $className, // Store original name in class_level too for compatibility
                 $_POST['phone'] ?? null,
                 $_POST['parent_phone'] ?? null,
                 !empty($_POST['dob']) ? $_POST['dob'] : null,
+                $_POST['address'] ?? null,
+                $_POST['status'] ?? 'Active',
                 $profileImage
             ]);
             echo json_encode(['status' => 'success', 'message' => 'เพิ่มข้อมูลสำเร็จ']);
@@ -88,6 +118,8 @@ try {
         case 'update':
             $profileImage = handleImageUpload();
             $id = $_POST['id'];
+            $className = $_POST['class_name'] ?? '';
+            $classId = findOrCreateClass($pdo, $className);
             
             if ($profileImage) {
                 // Fetch old image & delete it if new image uploaded
@@ -98,12 +130,12 @@ try {
                     unlink($uploadDir . $oldImage);
                 }
                 
-                $stmt = $pdo->prepare("UPDATE students SET student_code = ?, first_name = ?, last_name = ?, class_level = ?, phone = ?, parent_phone = ?, dob = ?, profile_image = ? WHERE id = ?");
-                $stmt->execute([$_POST['student_code'], $_POST['first_name'], $_POST['last_name'], $_POST['class_level'] ?? null, $_POST['phone'] ?? null, $_POST['parent_phone'] ?? null, !empty($_POST['dob']) ? $_POST['dob'] : null, $profileImage, $id]);
+                $stmt = $pdo->prepare("UPDATE students SET student_code = ?, first_name = ?, last_name = ?, gender = ?, class_id = ?, class_level = ?, phone = ?, parent_phone = ?, dob = ?, address = ?, status = ?, profile_image = ? WHERE id = ?");
+                $stmt->execute([$_POST['student_code'], $_POST['first_name'], $_POST['last_name'], $_POST['gender'] ?? null, $classId, $className, $_POST['phone'] ?? null, $_POST['parent_phone'] ?? null, !empty($_POST['dob']) ? $_POST['dob'] : null, $_POST['address'] ?? null, $_POST['status'] ?? 'Active', $profileImage, $id]);
             } else {
                 // Update without changing image
-                $stmt = $pdo->prepare("UPDATE students SET student_code = ?, first_name = ?, last_name = ?, class_level = ?, phone = ?, parent_phone = ?, dob = ? WHERE id = ?");
-                $stmt->execute([$_POST['student_code'], $_POST['first_name'], $_POST['last_name'], $_POST['class_level'] ?? null, $_POST['phone'] ?? null, $_POST['parent_phone'] ?? null, !empty($_POST['dob']) ? $_POST['dob'] : null, $id]);
+                $stmt = $pdo->prepare("UPDATE students SET student_code = ?, first_name = ?, last_name = ?, gender = ?, class_id = ?, class_level = ?, phone = ?, parent_phone = ?, dob = ?, address = ?, status = ? WHERE id = ?");
+                $stmt->execute([$_POST['student_code'], $_POST['first_name'], $_POST['last_name'], $_POST['gender'] ?? null, $classId, $className, $_POST['phone'] ?? null, $_POST['parent_phone'] ?? null, !empty($_POST['dob']) ? $_POST['dob'] : null, $_POST['address'] ?? null, $_POST['status'] ?? 'Active', $id]);
             }
             echo json_encode(['status' => 'success', 'message' => 'แก้ไขข้อมูลสำเร็จ']);
             break;

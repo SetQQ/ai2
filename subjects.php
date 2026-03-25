@@ -1,5 +1,13 @@
 <?php 
 require_once 'includes/auth_check.php'; 
+checkRole(['admin']); 
+require_once 'config/database.php';
+
+try {
+    $teachersList = $pdo->query("SELECT id, first_name, last_name FROM teachers ORDER BY first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $teachersList = [];
+}
 
 include 'includes/header.php'; 
 include 'includes/sidebar.php'; 
@@ -51,6 +59,7 @@ include 'includes/sidebar.php';
                             <tr>
                                 <th>รหัสวิชา</th>
                                 <th>ชื่อรายวิชา</th>
+                                <th>ครูผู้สอน</th>
                                 <th>หน่วยกิต</th>
                                 <th>ประเภท</th>
                                 <th>คำอธิบาย</th>
@@ -58,7 +67,7 @@ include 'includes/sidebar.php';
                             </tr>
                         </thead>
                         <tbody id="subjectTableBody">
-                            <tr><td colspan="6" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -105,6 +114,15 @@ include 'includes/sidebar.php';
             <div class="mb-3">
                 <label for="description" class="form-label">คำอธิบาย</label>
                 <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="teacherId" class="form-label">ครูผู้สอนประจำวิชา</label>
+                <select class="form-select" id="teacherId" name="teacher_id">
+                    <option value="">-- ไม่ระบุ --</option>
+                    <?php foreach($teachersList as $t): ?>
+                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['first_name'].' '.$t['last_name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
         </div>
         <div class="modal-footer">
@@ -162,9 +180,14 @@ function loadSubjects() {
                         ? '<span class="badge bg-primary">พื้นฐาน</span>' 
                         : '<span class="badge bg-success">เพิ่มเติม</span>';
                     
+                    let teacherName = (subject.first_name && subject.last_name) 
+                        ? `<i class="fas fa-user-tie text-muted me-1"></i> ${subject.first_name} ${subject.last_name}` 
+                        : '<span class="text-muted">-</span>';
+                        
                     html += `<tr>
                                 <td class="fw-semibold text-primary-custom">${subject.subject_code}</td>
                                 <td>${subject.subject_name}</td>
+                                <td>${teacherName}</td>
                                 <td>${parseFloat(subject.credit).toFixed(1)}</td>
                                 <td>${typeBadge}</td>
                                 <td><small class="text-muted">${subject.description || '-'}</small></td>
@@ -179,12 +202,12 @@ function loadSubjects() {
                              </tr>`;
                 });
             } else {
-                html = '<tr><td colspan="6" class="text-center text-muted">ไม่มีข้อมูลรายวิชาในระบบ</td></tr>';
+                html = '<tr><td colspan="7" class="text-center text-muted">ไม่มีข้อมูลรายวิชาในระบบ</td></tr>';
             }
             $('#subjectTableBody').html(html);
         },
         error: function() {
-            $('#subjectTableBody').html('<tr><td colspan="6" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
+            $('#subjectTableBody').html('<tr><td colspan="7" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
         }
     });
 }
@@ -192,6 +215,7 @@ function loadSubjects() {
 function openAddModal() {
     $('#subjectForm')[0].reset();
     $('#subjectId').val('');
+    $('#teacherId').val('');
     $('#actionType').val('create');
     $('#subjectModalLabel').text('เพิ่มข้อมูลรายวิชา');
     $('#subjectModal').modal('show');
@@ -205,6 +229,7 @@ function openEditModal(subject) {
     $('#credit').val(subject.credit);
     $('#type').val(subject.type);
     $('#description').val(subject.description);
+    $('#teacherId').val(subject.teacher_id || '');
     $('#actionType').val('update');
     $('#subjectModalLabel').text('แก้ไขข้อมูลรายวิชา');
     $('#subjectModal').modal('show');

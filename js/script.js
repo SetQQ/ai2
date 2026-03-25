@@ -31,18 +31,21 @@ $(document).ready(function() {
     initCharts();
 });
 
+window.attendanceChartInstance = null;
+window.gradeChartInstance = null;
+
 function initCharts() {
     // Attendance Chart (Line Chart)
     const attendanceCanvas = document.getElementById('attendanceChart');
     if(attendanceCanvas) {
         const ctx1 = attendanceCanvas.getContext('2d');
-        new Chart(ctx1, {
+        window.attendanceChartInstance = new Chart(ctx1, {
             type: 'line',
             data: {
-                labels: ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'],
+                labels: ['-', '-', '-', '-', '-'],
                 datasets: [{
                     label: 'นักเรียนมาเรียน (%)',
-                    data: [96, 94, 98, 92, 89],
+                    data: [0, 0, 0, 0, 0],
                     borderColor: '#355872',
                     backgroundColor: 'rgba(53, 88, 114, 0.15)',
                     borderWidth: 3,
@@ -61,14 +64,14 @@ function initCharts() {
                     legend: { position: 'top' },
                     title: { 
                         display: true, 
-                        text: 'แนวโน้มการมาเรียนในสัปดาห์นี้',
+                        text: 'แนวโน้มการมาเรียนในรอบ 5 วันล่าสุด',
                         font: { size: 16, family: 'Sarabun' }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: false,
-                        min: 50,
+                        min: 0,
                         max: 100
                     }
                 }
@@ -80,13 +83,13 @@ function initCharts() {
     const gradeCanvas = document.getElementById('gradeChart');
     if(gradeCanvas) {
         const ctx2 = gradeCanvas.getContext('2d');
-        new Chart(ctx2, {
+        window.gradeChartInstance = new Chart(ctx2, {
             type: 'bar',
             data: {
-                labels: ['เกรด 0', 'เกรด 1', 'เกรด 2', 'เกรด 3', 'เกรด 4'],
+                labels: ['เกรด 0', 'เกรด 1-1.5', 'เกรด 2-2.5', 'เกรด 3-3.5', 'เกรด 4'],
                 datasets: [{
                     label: 'จำนวนนักเรียน',
-                    data: [45, 120, 310, 480, 245],
+                    data: [0, 0, 0, 0, 0],
                     backgroundColor: [
                         '#dc3545', // Danger
                         '#fd7e14', // Warning-ish

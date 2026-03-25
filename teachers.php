@@ -1,6 +1,15 @@
 <?php 
 require_once 'includes/auth_check.php'; 
-require_once 'setup_teachers_table.php'; // Ensure table exists
+checkRole(['admin']); 
+require_once 'setup_teachers_table.php';
+
+try {
+    // Fetch users with role teacher
+    $teacherUsers = $pdo->query("SELECT id, username, first_name, last_name FROM users WHERE role = 'teacher' AND is_active = 1 ORDER BY username ASC")->fetchAll();
+} catch (PDOException $e) {
+    $teacherUsers = [];
+}
+
 include 'includes/header.php'; 
 include 'includes/sidebar.php'; 
 ?>
@@ -84,6 +93,15 @@ include 'includes/sidebar.php';
             <div class="mb-3">
                 <label for="teacherCode" class="form-label">รหัสประจำตัวครู (Teacher ID)</label>
                 <input type="text" class="form-control" id="teacherCode" name="teacher_code" required>
+            </div>
+            <div class="mb-3">
+                <label for="userId" class="form-label">เชื่อมโยงบัญชีผู้ใช้งาน (Optional)</label>
+                <select class="form-select" id="userId" name="user_id">
+                    <option value="">-- ไม่เชื่อมโยง --</option>
+                    <?php foreach($teacherUsers as $u): ?>
+                        <option value="<?= $u['id'] ?>"><?= htmlspecialchars($u['username'] . ' (' . $u['first_name'] . ' ' . $u['last_name'] . ')') ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -220,6 +238,7 @@ function openEditModal(teacher) {
     $('#teacherCode').val(teacher.teacher_code);
     $('#firstName').val(teacher.first_name);
     $('#lastName').val(teacher.last_name);
+    $('#userId').val(teacher.user_id);
     $('#phone').val(teacher.phone);
     $('#lineId').val(teacher.line_id);
     $('#department').val(teacher.department);

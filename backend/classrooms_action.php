@@ -16,12 +16,12 @@ switch ($action) {
     case 'create':
         $room_code = $_POST['room_code'] ?? '';
         $class_id = $_POST['class_id'] ?? '';
-        $room_name = $_POST['room_name'] ?? '';
+        $room_name = ''; // Hardcoded to satisfy DB constraint
         $teacher_id = !empty($_POST['teacher_id']) ? $_POST['teacher_id'] : null;
         $capacity = $_POST['capacity'] ?? 40;
 
-        if (empty($room_code) || empty($class_id) || empty($room_name)) {
-            echo json_encode(['status' => 'error', 'message' => 'รหัสห้อง, ระดับชั้นและชื่อห้องเรียนจำเป็นต้องกรอก']);
+        if (empty($room_code) || empty($class_id)) {
+            echo json_encode(['status' => 'error', 'message' => 'รหัสห้องและระดับชั้นจำเป็นต้องกรอก']);
             exit;
         }
 
@@ -53,12 +53,12 @@ switch ($action) {
         $id = $_POST['id'] ?? '';
         $room_code = $_POST['room_code'] ?? '';
         $class_id = $_POST['class_id'] ?? '';
-        $room_name = $_POST['room_name'] ?? '';
+        $room_name = ''; // Hardcoded to satisfy DB constraint
         $teacher_id = !empty($_POST['teacher_id']) ? $_POST['teacher_id'] : null;
         $capacity = $_POST['capacity'] ?? 40;
 
-        if (empty($id) || empty($room_code) || empty($class_id) || empty($room_name)) {
-            echo json_encode(['status' => 'error', 'message' => 'รหัสห้อง, ระดับชั้นและชื่อห้องเรียนจำเป็นต้องกรอก']);
+        if (empty($id) || empty($room_code) || empty($class_id)) {
+            echo json_encode(['status' => 'error', 'message' => 'รหัสห้องและระดับชั้นจำเป็นต้องกรอก']);
             exit;
         }
 

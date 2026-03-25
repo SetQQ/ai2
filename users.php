@@ -1,7 +1,6 @@
 <?php 
 require_once 'includes/auth_check.php'; 
-// Only admins should ideally access this, but we will allow view for now or restrict later
-// checkRole(['admin']); 
+checkRole(['admin']); 
 require_once 'config/database.php';
 
 include 'includes/header.php'; 

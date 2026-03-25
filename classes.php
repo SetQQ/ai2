@@ -1,5 +1,6 @@
 <?php 
 require_once 'includes/auth_check.php'; 
+checkRole(['admin']); 
 
 include 'includes/header.php'; 
 include 'includes/sidebar.php'; 
@@ -80,11 +81,11 @@ include 'includes/sidebar.php';
             <input type="hidden" id="actionType" name="action" value="create">
 
             <div class="mb-3">
-                <label for="classCode" class="form-label">รหัสชั้นเรียน</label>
-                <input type="text" class="form-control" id="classCode" name="class_code" required>
+                <label for="classCode" class="form-label">รหัสชั้นเรียน (ไม่จำเป็น)</label>
+                <input type="text" class="form-control" id="classCode" name="class_code">
             </div>
             <div class="mb-3">
-                <label for="className" class="form-label">ชื่อชั้นเรียน (เช่น ม.1, ป.6)</label>
+                <label for="className" class="form-label">ชื่อชั้นเรียน (เช่น ม.1)</label>
                 <input type="text" class="form-control" id="className" name="class_name" required>
             </div>
             <div class="mb-3">
@@ -121,13 +122,14 @@ $(document).ready(function() {
             success: function(response) {
                 if (response.status === 'success') {
                     $('#classModal').modal('hide');
+                    Swal.fire('สำเร็จ', response.message, 'success');
                     loadClasses();
                 } else {
-                    alert('Error: ' + response.message);
+                    Swal.fire('ข้อผิดพลาด', response.message, 'error');
                 }
             },
             error: function() {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+                Swal.fire('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
             }
         });
     });
@@ -188,20 +190,32 @@ function openEditModal(cls) {
 }
 
 function deleteClass(id) {
-    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลข้อมูลระดับชั้นเรียนนี้? (อาจมีผลกระทบกับห้องเรียนที่เชื่อมโยงอยู่)')) {
-        $.ajax({
-            url: 'backend/classes_action.php',
-            type: 'POST',
-            data: { action: 'delete', id: id },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    loadClasses();
-                } else {
-                    alert('Error: ' + response.message);
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: 'คุณแน่ใจหรือไม่ว่าต้องการลบระดับชั้นเรียนนี้? (อาจมีผลกระทบกับห้องเรียนที่เชื่อมโยงอยู่)',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ใช่, ลบเลย!',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'backend/classes_action.php',
+                type: 'POST',
+                data: { action: 'delete', id: id },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('ลบแล้ว!', response.message, 'success');
+                        loadClasses();
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', response.message, 'error');
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
+    });
 }
 </script>

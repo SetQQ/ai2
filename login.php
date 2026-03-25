@@ -59,7 +59,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['last_name'] = $user['last_name'];
                     $_SESSION['last_login'] = time();
 
-                    header('Location: index.php');
+                    // Fetch linked Profile ID (Safely handle potentially missing columns/tables)
+                    try {
+                        if ($user['role'] === 'teacher') {
+                            $stmtT = $pdo->prepare("SELECT id FROM teachers WHERE user_id = ?");
+                            $stmtT->execute([$user['id']]);
+                            $profile = $stmtT->fetch();
+                            $_SESSION['teacher_id'] = $profile['id'] ?? null;
+                        } elseif ($user['role'] === 'student') {
+                            // Using a more resilient query that won't fail if columns are missing during migration
+                            $stmtS = $pdo->prepare("SELECT * FROM students WHERE user_id = ?");
+                            $stmtS->execute([$user['id']]);
+                            $profile = $stmtS->fetch();
+                            if ($profile) {
+                                $_SESSION['student_id'] = $profile['id'];
+                                $_SESSION['class_id'] = $profile['class_id'] ?? null;
+                            } else {
+                                $_SESSION['student_id'] = null;
+                                $_SESSION['class_id'] = null;
+                            }
+                        }
+                    } catch (PDOException $e) {
+                        // If columns like user_id or class_id are missing, don't crash the login
+                        $_SESSION['teacher_id'] = null;
+                        $_SESSION['student_id'] = null;
+                        $_SESSION['class_id'] = null;
+                    }
+
+                    if ($_SESSION['role'] === 'admin') {
+                        header('Location: index.php');
+                    } else {
+                        header('Location: schedules.php');
+                    }
                     exit;
                 } else {
                     $error = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";

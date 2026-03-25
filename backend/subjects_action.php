@@ -4,8 +4,8 @@ session_start();
 require_once '../config/database.php';
 
 // Ensure user is logged in
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    echo json_encode(['status' => 'error', 'message' => 'Forbidden']);
     exit;
 }
 
@@ -19,6 +19,7 @@ switch ($action) {
         $credit = $_POST['credit'] ?? 0;
         $type = $_POST['type'] ?? 'core';
         $description = $_POST['description'] ?? '';
+        $teacher_id = !empty($_POST['teacher_id']) ? $_POST['teacher_id'] : null;
 
         if (empty($subject_code) || empty($subject_name)) {
             echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ครบถ้วน']);
@@ -26,8 +27,8 @@ switch ($action) {
         }
 
         try {
-            $stmt = $pdo->prepare("INSERT INTO subjects (subject_code, subject_name, credit, type, description) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$subject_code, $subject_name, $credit, $type, $description]);
+            $stmt = $pdo->prepare("INSERT INTO subjects (subject_code, subject_name, credit, type, description, teacher_id) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$subject_code, $subject_name, $credit, $type, $description, $teacher_id]);
             echo json_encode(['status' => 'success', 'message' => 'เพิ่มข้อมูลรายวิชาเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล: ' . $e->getMessage()]);
@@ -36,7 +37,7 @@ switch ($action) {
 
     case 'read':
         try {
-            $stmt = $pdo->query("SELECT * FROM subjects ORDER BY subject_code ASC");
+            $stmt = $pdo->query("SELECT s.*, t.first_name, t.last_name FROM subjects s LEFT JOIN teachers t ON s.teacher_id = t.id ORDER BY s.subject_code ASC");
             $subjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(['status' => 'success', 'data' => $subjects]);
         } catch (PDOException $e) {
@@ -51,6 +52,7 @@ switch ($action) {
         $credit = $_POST['credit'] ?? 0;
         $type = $_POST['type'] ?? 'core';
         $description = $_POST['description'] ?? '';
+        $teacher_id = !empty($_POST['teacher_id']) ? $_POST['teacher_id'] : null;
 
         if (empty($id) || empty($subject_code) || empty($subject_name)) {
             echo json_encode(['status' => 'error', 'message' => 'ข้อมูลไม่ครบถ้วน']);
@@ -58,8 +60,8 @@ switch ($action) {
         }
 
         try {
-            $stmt = $pdo->prepare("UPDATE subjects SET subject_code = ?, subject_name = ?, credit = ?, type = ?, description = ? WHERE id = ?");
-            $stmt->execute([$subject_code, $subject_name, $credit, $type, $description, $id]);
+            $stmt = $pdo->prepare("UPDATE subjects SET subject_code = ?, subject_name = ?, credit = ?, type = ?, description = ?, teacher_id = ? WHERE id = ?");
+            $stmt->execute([$subject_code, $subject_name, $credit, $type, $description, $teacher_id, $id]);
             echo json_encode(['status' => 'success', 'message' => 'แก้ไขข้อมูลเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล: ' . $e->getMessage()]);

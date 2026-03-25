@@ -1,6 +1,7 @@
 <?php 
 require_once 'includes/auth_check.php'; 
-require_once 'config/database.php'; // Required for PDO in this file
+checkRole(['admin']); 
+require_once 'config/database.php';
 
 include 'includes/header.php'; 
 include 'includes/sidebar.php'; 
@@ -60,14 +61,13 @@ $teachersList = $stmtTeachers->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <th>รหัสห้อง (Room Code)</th>
                                 <th>ระดับชั้น</th>
-                                <th>ชื่อห้องเรียน/ห้อง</th>
                                 <th>ครูประจำชั้น</th>
                                 <th>ความจุ (คน)</th>
                                 <th class="text-center">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="classroomTableBody">
-                            <tr><td colspan="5" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -102,10 +102,6 @@ $teachersList = $stmtTeachers->fetchAll(PDO::FETCH_ASSOC);
                         <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['class_name']) ?></option>
                     <?php endforeach; ?>
                 </select>
-            </div>
-            <div class="mb-3">
-                <label for="roomName" class="form-label">ชื่อห้อง/เลขห้อง (เช่น /1, 101, A)</label>
-                <input type="text" class="form-control" id="roomName" name="room_name" required>
             </div>
             <div class="mb-3">
                 <label for="teacherId" class="form-label">ครูประจำชั้น</label>
@@ -177,7 +173,6 @@ function loadClassrooms() {
                     html += `<tr>
                                 <td class="fw-semibold text-primary-custom">${room.room_code || '-'}</td>
                                 <td>${room.class_name}</td>
-                                <td>${room.room_name}</td>
                                 <td>${teacherName}</td>
                                 <td>${room.capacity}</td>
                                 <td class="text-center">
@@ -191,12 +186,12 @@ function loadClassrooms() {
                              </tr>`;
                 });
             } else {
-                html = '<tr><td colspan="6" class="text-center text-muted">ไม่มีข้อมูลห้องเรียนในระบบ</td></tr>';
+                html = '<tr><td colspan="5" class="text-center text-muted">ไม่มีข้อมูลห้องเรียนในระบบ</td></tr>';
             }
             $('#classroomTableBody').html(html);
         },
         error: function() {
-            $('#classroomTableBody').html('<tr><td colspan="6" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
+            $('#classroomTableBody').html('<tr><td colspan="5" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
         }
     });
 }
@@ -214,7 +209,6 @@ function openEditModal(room) {
     $('#classroomId').val(room.id);
     $('#roomCode').val(room.room_code);
     $('#classId').val(room.class_id);
-    $('#roomName').val(room.room_name);
     $('#teacherId').val(room.teacher_id || '');
     $('#capacity').val(room.capacity);
     $('#actionType').val('update');

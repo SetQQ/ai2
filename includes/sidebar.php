@@ -24,13 +24,16 @@ $isMasterDataActive = in_array($currentPage, $masterDataPages);
             </div>
 
             <ul class="list-unstyled components mt-2">
+                <?php if ($_SESSION['role'] === 'admin'): ?>
                 <!-- Module 6: Dashboard -->
-                <li class="<?= ($currentPage == 'index.php') ? 'active' : '' ?>">
-                    <a href="index.php">
-                        <i class="fas fa-chart-line me-2 w-20px"></i> แดชบอร์ด
+                <li class="nav-item <?= ($currentPage == 'index.php') ? 'active' : '' ?>">
+                    <a href="index.php" class="nav-link">
+                        <i class="fas fa-chart-line me-2"></i> Dashboard
                     </a>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($_SESSION['role'] === 'admin'): ?>
                 <!-- Module 1: Master Data -->
                 <li class="<?= $isMasterDataActive ? 'active' : '' ?>">
                     <a href="#masterDataSubmenu" data-bs-toggle="collapse" aria-expanded="<?= $isMasterDataActive ? 'true' : 'false' ?>" class="dropdown-toggle d-flex align-items-center justify-content-between">
@@ -44,33 +47,38 @@ $isMasterDataActive = in_array($currentPage, $masterDataPages);
                         <li class="<?= ($currentPage == 'classrooms.php') ? 'active' : '' ?>"><a href="classrooms.php"><i class="fas fa-door-open me-2"></i> ข้อมูลห้องเรียน</a></li>
                     </ul>
                 </li>
+                <?php endif; ?>
 
-                <!-- Module 2: Schedule -->
+                <!-- Module 2: Schedule (All Roles but with filtering) -->
                 <li class="<?= ($currentPage == 'schedules.php') ? 'active' : '' ?>">
                     <a href="schedules.php">
-                        <i class="fas fa-calendar-alt me-2 w-20px"></i> จัดการตารางเรียน
+                        <i class="fas fa-calendar-alt me-2 w-20px"></i> <?= ($_SESSION['role'] === 'admin') ? 'จัดการตารางเรียน' : 'ตารางเรียน' ?>
                     </a>
                 </li>
 
                 <!-- Module 3: Grading -->
                 <li class="<?= ($currentPage == 'grades.php') ? 'active' : '' ?>">
                     <a href="grades.php">
-                        <i class="fas fa-star me-2 w-20px"></i> บันทึกผลการเรียน
+                        <i class="fas fa-star me-2 w-20px"></i> <?= ($_SESSION['role'] === 'student') ? 'ผลการเรียน' : 'บันทึกผลการเรียน' ?>
                     </a>
                 </li>
 
+                <?php if (in_array($_SESSION['role'], ['admin', 'teacher'])): ?>
                 <!-- Module 5: Attendance -->
                 <li class="<?= ($currentPage == 'attendance.php') ? 'active' : '' ?>">
                     <a href="attendance.php">
                         <i class="fas fa-clipboard-user me-2 w-20px"></i> ระบบบันทึกเวลาเรียน
                     </a>
                 </li>
+                <?php endif; ?>
 
+                <?php if ($_SESSION['role'] === 'admin'): ?>
                 <!-- Module 4: Authentication & RBAC -->
                 <li class="<?= ($currentPage == 'users.php') ? 'active' : '' ?>">
                     <a href="users.php">
                         <i class="fas fa-users-cog me-2 w-20px"></i> จัดการผู้ใช้งาน
                     </a>
                 </li>
+                <?php endif; ?>
             </ul>
         </nav>

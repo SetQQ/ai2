@@ -4,8 +4,8 @@ session_start();
 require_once '../config/database.php';
 
 // Check auth and role (Only Admins should manage users, but handling simply for now)
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    echo json_encode(['status' => 'error', 'message' => 'Forbidden']);
     exit;
 }
 
@@ -40,6 +40,19 @@ switch ($action) {
             $hashedPassword = password_hash($raw_password, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role, first_name, last_name, is_active) VALUES (?, ?, ?, ?, ?, ?)");
             $stmt->execute([$username, $hashedPassword, $role, $first_name, $last_name, $is_active]);
+            $user_id = $pdo->lastInsertId();
+
+            // Auto-create linked profile
+            if ($role === 'teacher') {
+                $teacher_code = 'TCH' . date('YmdHis'); // Placeholder
+                $stmtProfile = $pdo->prepare("INSERT INTO teachers (user_id, teacher_code, first_name, last_name) VALUES (?, ?, ?, ?)");
+                $stmtProfile->execute([$user_id, $teacher_code, $first_name, $last_name]);
+            } elseif ($role === 'student') {
+                $student_code = 'STD' . date('YmdHis'); // Placeholder
+                $stmtProfile = $pdo->prepare("INSERT INTO students (user_id, student_code, first_name, last_name) VALUES (?, ?, ?, ?)");
+                $stmtProfile->execute([$user_id, $student_code, $first_name, $last_name]);
+            }
+
             echo json_encode(['status' => 'success', 'message' => 'เพิ่มข้อมูลผู้ใช้งานเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             if ($e->getCode() == 23000) { // Unique constraint violation
@@ -60,6 +73,11 @@ switch ($action) {
         $new_password = $_POST['password'] ?? '';
 
         try {
+            // Read Old Role to check if role changed
+            $stmtOld = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+            $stmtOld->execute([$id]);
+            $oldRole = $stmtOld->fetchColumn();
+
             if (!empty($new_password)) {
                 $hashedPassword = password_hash($new_password, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare("UPDATE users SET username=?, password_hash=?, role=?, first_name=?, last_name=?, is_active=? WHERE id=?");
@@ -68,6 +86,18 @@ switch ($action) {
                 $stmt = $pdo->prepare("UPDATE users SET username=?, role=?, first_name=?, last_name=?, is_active=? WHERE id=?");
                 $stmt->execute([$username, $role, $first_name, $last_name, $is_active, $id]);
             }
+
+            // If role remains the same, sync names to profile
+            if ($oldRole === $role) {
+                if ($role === 'teacher') {
+                    $stmtProfile = $pdo->prepare("UPDATE teachers SET first_name=?, last_name=? WHERE user_id=?");
+                    $stmtProfile->execute([$first_name, $last_name, $id]);
+                } elseif ($role === 'student') {
+                    $stmtProfile = $pdo->prepare("UPDATE students SET first_name=?, last_name=? WHERE user_id=?");
+                    $stmtProfile->execute([$first_name, $last_name, $id]);
+                }
+            }
+
             echo json_encode(['status' => 'success', 'message' => 'อัปเดตข้อมูลผู้ใช้งานเรียบร้อยแล้ว']);
         } catch (PDOException $e) {
             if ($e->getCode() == 23000) {
