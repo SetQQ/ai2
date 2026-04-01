@@ -216,6 +216,7 @@ function openAddModal() {
     $('#subjectForm')[0].reset();
     $('#subjectId').val('');
     $('#teacherId').val('');
+
     $('#actionType').val('create');
     $('#subjectModalLabel').text('เพิ่มข้อมูลรายวิชา');
     $('#subjectModal').modal('show');
@@ -230,26 +231,39 @@ function openEditModal(subject) {
     $('#type').val(subject.type);
     $('#description').val(subject.description);
     $('#teacherId').val(subject.teacher_id || '');
+
     $('#actionType').val('update');
     $('#subjectModalLabel').text('แก้ไขข้อมูลรายวิชา');
     $('#subjectModal').modal('show');
 }
 
 function deleteSubject(id) {
-    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลรายวิชานี้?')) {
-        $.ajax({
-            url: 'backend/subjects_action.php',
-            type: 'POST',
-            data: { action: 'delete', id: id },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    loadSubjects();
-                } else {
-                    alert('Error: ' + response.message);
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: 'คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลรายวิชานี้?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ตกลง',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'backend/subjects_action.php',
+                type: 'POST',
+                data: { action: 'delete', id: id },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('ลบแล้ว!', 'ลบข้อมูลรายวิชาเรียบร้อยแล้ว', 'success');
+                        loadSubjects();
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', response.message, 'error');
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
+    });
 }
 </script>

@@ -5,7 +5,7 @@ require_once 'config/database.php';
 // Fetch unique class levels from students for the dropdown
 try {
     if ($_SESSION['role'] === 'admin') {
-        $stmtClasses = $pdo->query("SELECT id, class_name FROM classes ORDER BY class_name ASC");
+        $stmtClasses = $pdo->query("SELECT DISTINCT c.id, c.class_name FROM classes c JOIN students s ON c.id = s.class_id ORDER BY c.class_name ASC");
         $classesList = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
 
         $stmtSubjects = $pdo->query("SELECT id, subject_name, subject_code FROM subjects ORDER BY subject_name ASC");

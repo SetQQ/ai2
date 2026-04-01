@@ -4,11 +4,12 @@ require_once 'config/database.php';
 
 // Fetch lookups for dropdowns
 try {
-    $classesList = $pdo->query("SELECT id, class_name FROM classes ORDER BY level ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $classesList = $pdo->query("SELECT DISTINCT c.id, c.class_name FROM classes c JOIN students s ON c.id = s.class_id ORDER BY c.class_name ASC")->fetchAll(PDO::FETCH_ASSOC);
     $subjectsList = $pdo->query("SELECT id, subject_name, subject_code FROM subjects ORDER BY subject_name ASC")->fetchAll(PDO::FETCH_ASSOC);
     $teachersList = $pdo->query("SELECT id, first_name, last_name FROM teachers ORDER BY first_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $classroomsList = $pdo->query("SELECT id, room_code, room_name FROM classrooms ORDER BY room_code ASC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    $classesList = $subjectsList = $teachersList = [];
+    $classesList = $subjectsList = $teachersList = $classroomsList = [];
 }
 
 include 'includes/header.php'; 
@@ -45,9 +46,6 @@ include 'includes/sidebar.php';
                         <span class="d-none d-sm-inline fw-semibold text-dark"><?= htmlspecialchars($_SESSION['first_name'] ?? 'User') ?></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="navbarDropdownMenuLink">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle me-2"></i> โปรไฟล์ส่วนตัว</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> ตั้งค่าระบบ</a></li>
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> ออกจากระบบ</a></li>
                     </ul>
                 </li>
@@ -69,7 +67,7 @@ include 'includes/sidebar.php';
         </div>
 
         <div class="row mb-4 justify-content-center">
-            <?php if($_SESSION['role'] !== 'student'): ?>
+            <?php if($_SESSION['role'] === 'admin'): ?>
             <div class="col-md-10 col-lg-8">
                 <div class="card border-0 shadow-sm bg-white overflow-hidden">
                     <div class="card-body p-4">
@@ -90,7 +88,7 @@ include 'includes/sidebar.php';
                 </div>
             </div>
             <?php else: ?>
-                <input type="hidden" id="filterClass" value="<?= $_SESSION['class_id'] ?>">
+                <input type="hidden" id="filterClass" value="<?= $_SESSION['role'] === 'teacher' ? 'teacher_all' : ($_SESSION['class_id'] ?? '') ?>">
             <?php endif; ?>
         </div>
 
@@ -169,6 +167,18 @@ include 'includes/sidebar.php';
                         <option value="">-- เลือกครู --</option>
                         <?php foreach($teachersList as $t): ?>
                             <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['first_name'].' '.$t['last_name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label for="classroomId" class="form-label fw-bold">สถานที่เรียน (ห้องเรียน)</label>
+                    <select class="form-select border-primary" id="classroomId" name="classroom_id">
+                        <option value="">-- ระบุหรือไม่ระบุก็ได้ --</option>
+                        <?php foreach($classroomsList as $cr): ?>
+                            <option value="<?= $cr['id'] ?>"><?= htmlspecialchars($cr['room_name'] ?: 'ยังไม่กำหนดชื่อห้อง') ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -334,12 +344,18 @@ function renderGrid(scheduleData, isJuniorHigh) {
                             </div>
                           </td>`;
             } else {
-                let sch = scheduleData.find(s => s.day_of_week === day && s.start_time === p.start && s.end_time === p.end);
+                let sch = scheduleData.find(s => s.day_of_week === day && s.start_time >= p.start && s.start_time < p.end);
                 
                 if (sch) {
                     let clickAction = (userRole === 'admin') ? `onclick='openEditModal(${JSON.stringify(sch).replace(/'/g, "&apos;")})'` : '';
+                    let classBadge = (userRole === 'teacher' && sch.class_name) ? `<span class="badge bg-secondary mb-1" style="font-size: 0.7rem;">${sch.class_name}</span>` : '';
+                    
+                    let roomText = sch.room_name;
+                    let roomBadge = roomText ? `<span class="badge bg-info text-dark mb-1" style="font-size: 0.7rem; margin-left:2px;">${roomText.trim()}</span>` : '';
+                    
                     table += `<td class="p-2 position-relative">
                         <div class="schedule-card p-2 rounded shadow-sm bg-white h-100 d-flex flex-column justify-content-center border" style="cursor: ${(userRole === 'admin') ? 'pointer' : 'default'}; border-left: 4px solid var(--bs-primary) !important; font-size: 0.85rem; min-height: 90px; transition: 0.2s;" ${clickAction}>
+                            <div class="d-flex justify-content-center flex-wrap">${classBadge}${roomBadge}</div>
                             <div class="fw-bold text-primary text-truncate pb-1 border-bottom border-light" title="${sch.subject_code}">${sch.subject_code}</div>
                             <div class="text-truncate text-dark mt-1" title="${sch.subject_name}" style="font-size: 0.8rem;">${sch.subject_name}</div>
                             <div class="text-truncate mt-1 text-muted" title="${sch.teacher_fname} ${sch.teacher_lname}" style="font-size: 0.75rem;"><i class="fas fa-user me-1"></i>${sch.teacher_fname} ${sch.teacher_lname.substring(0,1)}.</div>
@@ -371,6 +387,9 @@ function openSlotAddModal(day, start, end) {
     $('#scheduleId').val('');
     $('#actionType').val('create');
     $('#modalClassId').val(currentClassId);
+    $('#subjectId').val('');
+    $('#teacherId').val('');
+    $('#classroomId').val('');
     
     // Set hidden inputs
     $('#dayOfWeek').val(day);
@@ -404,6 +423,7 @@ function openEditModal(schedule) {
 
     $('#subjectId').val(schedule.subject_id);
     $('#teacherId').val(schedule.teacher_id);
+    $('#classroomId').val(schedule.classroom_id || '');
     
     $('#scheduleModalLabel').text('แก้ไขคาบเรียน');
     $('#btnDeleteSchedule').show();
@@ -422,7 +442,7 @@ function deleteCurrentSchedule() {
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'ใช่, ลบเลย!',
+        confirmButtonText: 'ตกลง',
         cancelButtonText: 'ยกเลิก'
     }).then((result) => {
         if (result.isConfirmed) {

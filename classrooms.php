@@ -6,13 +6,6 @@ require_once 'config/database.php';
 include 'includes/header.php'; 
 include 'includes/sidebar.php'; 
 
-// Fetch classes for dropdown
-$stmtClasses = $pdo->query("SELECT id, class_name FROM classes ORDER BY id ASC");
-$classesList = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
-
-// Fetch teachers for dropdown
-$stmtTeachers = $pdo->query("SELECT id, first_name, last_name FROM teachers ORDER BY first_name ASC");
-$teachersList = $stmtTeachers->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!-- Main Content -->
@@ -60,9 +53,7 @@ $teachersList = $stmtTeachers->fetchAll(PDO::FETCH_ASSOC);
                         <thead class="table-light">
                             <tr>
                                 <th>รหัสห้อง (Room Code)</th>
-                                <th>ระดับชั้น</th>
-                                <th>ครูประจำชั้น</th>
-                                <th>ความจุ (คน)</th>
+                                <th>ชื่อห้องเรียน (Room Name)</th>
                                 <th class="text-center">จัดการ</th>
                             </tr>
                         </thead>
@@ -91,30 +82,12 @@ $teachersList = $stmtTeachers->fetchAll(PDO::FETCH_ASSOC);
             <input type="hidden" id="actionType" name="action" value="create">
 
             <div class="mb-3">
-                <label for="roomCode" class="form-label">รหัสห้อง (เช่น R401)</label>
-                <input type="text" class="form-control" id="roomCode" name="room_code" required>
+                <label for="roomCode" class="form-label">รหัสห้อง (เช่น M304, R401)</label>
+                <input type="text" class="form-control border-primary" id="roomCode" name="room_code" required>
             </div>
             <div class="mb-3">
-                <label for="classId" class="form-label">ระดับชั้นเรียน</label>
-                <select class="form-select" id="classId" name="class_id" required>
-                    <option value="">-- เลือกระดับชั้นเรียน --</option>
-                    <?php foreach($classesList as $c): ?>
-                        <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['class_name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="teacherId" class="form-label">ครูประจำชั้น</label>
-                <select class="form-select" id="teacherId" name="teacher_id">
-                    <option value="">-- ไม่ระบุ --</option>
-                    <?php foreach($teachersList as $t): ?>
-                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['first_name'] . ' ' . $t['last_name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="capacity" class="form-label">ความจุนักเรียน (คน)</label>
-                <input type="number" class="form-control" id="capacity" name="capacity" value="40" min="1" required>
+                <label for="roomName" class="form-label">ชื่อห้องเรียน (อาทิ ห้องทดลองวิทย์ 1)</label>
+                <input type="text" class="form-control border-primary" id="roomName" name="room_name" placeholder="-- ไม่ระบุ --">
             </div>
         </div>
         <div class="modal-footer">
@@ -168,13 +141,9 @@ function loadClassrooms() {
             let html = '';
             if (response.data && response.data.length > 0) {
                 $.each(response.data, function(index, room) {
-                    let teacherName = room.teacher_id ? `${room.teacher_first_name} ${room.teacher_last_name}` : '<span class="text-muted">ไม่ระบุ</span>';
-                    
                     html += `<tr>
                                 <td class="fw-semibold text-primary-custom">${room.room_code || '-'}</td>
-                                <td>${room.class_name}</td>
-                                <td>${teacherName}</td>
-                                <td>${room.capacity}</td>
+                                <td>${room.room_name || '<span class="text-muted">ไม่ระบุ</span>'}</td>
                                 <td class="text-center">
                                     <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(room).replace(/'/g, "&apos;")})'>
                                         <i class="fas fa-edit"></i> แก้ไข
@@ -208,29 +177,39 @@ function openEditModal(room) {
     $('#classroomForm')[0].reset();
     $('#classroomId').val(room.id);
     $('#roomCode').val(room.room_code);
-    $('#classId').val(room.class_id);
-    $('#teacherId').val(room.teacher_id || '');
-    $('#capacity').val(room.capacity);
+    $('#roomName').val(room.room_name || '');
     $('#actionType').val('update');
     $('#classroomModalLabel').text('แก้ไขข้อมูลห้องเรียน');
     $('#classroomModal').modal('show');
 }
 
 function deleteClassroom(id) {
-    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลข้อมูลห้องเรียนนี้?')) {
-        $.ajax({
-            url: 'backend/classrooms_action.php',
-            type: 'POST',
-            data: { action: 'delete', id: id },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    loadClassrooms();
-                } else {
-                    alert('Error: ' + response.message);
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: 'คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลห้องเรียนนี้?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ตกลง',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'backend/classrooms_action.php',
+                type: 'POST',
+                data: { action: 'delete', id: id },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('ลบแล้ว!', 'ลบข้อมูลห้องเรียนเรียบร้อยแล้ว', 'success');
+                        loadClassrooms();
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', response.message, 'error');
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
+    });
 }
 </script>

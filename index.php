@@ -77,16 +77,6 @@ try {
 
             <!-- Navbar Right Side -->
             <ul class="navbar-nav ms-auto align-items-center flex-row">
-                <!-- Notifications -->
-                <li class="nav-item me-3">
-                    <a class="nav-link position-relative" href="#">
-                        <i class="fas fa-bell fs-5 text-muted"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                            3
-                            <span class="visually-hidden">unread messages</span>
-                        </span>
-                    </a>
-                </li>
                 <!-- User Profile -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -96,9 +86,6 @@ try {
                         <span class="d-none d-sm-inline fw-semibold text-dark"><?= htmlspecialchars($_SESSION['first_name'] ?? 'User') ?></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="navbarDropdownMenuLink">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle me-2"></i> โปรไฟล์ส่วนตัว</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> ตั้งค่าระบบ</a></li>
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> ออกจากระบบ</a></li>
                     </ul>
                 </li>
@@ -112,9 +99,6 @@ try {
             <h3 class="fw-bold text-primary-custom mb-0">
                 <i class="fas fa-chart-pie me-2"></i> ภาพรวมระบบ (Dashboard)
             </h3>
-            <button class="btn btn-outline-primary d-none d-md-block shadow-sm">
-                <i class="fas fa-download me-1"></i> ดาวน์โหลดรายงาน
-            </button>
         </div>
         
         <!-- Statistic Cards -->

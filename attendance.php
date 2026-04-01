@@ -5,7 +5,7 @@ require_once 'config/database.php';
 // Fetch classes from classes table for the dropdown
 try {
     if ($_SESSION['role'] === 'admin') {
-        $stmtClasses = $pdo->query("SELECT id, class_name FROM classes ORDER BY class_name ASC");
+        $stmtClasses = $pdo->query("SELECT DISTINCT c.id, c.class_name FROM classes c JOIN students s ON c.id = s.class_id ORDER BY c.class_name ASC");
         $classesList = $stmtClasses->fetchAll(PDO::FETCH_ASSOC);
     } else {
         // Teachers only see classes they teach

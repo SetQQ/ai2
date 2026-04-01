@@ -3,6 +3,12 @@
 session_name('SCHOOL_SECURE_SESSION');
 session_start();
 
+// ป้องกัน Browser Cache หน้า PHP (ทำให้การแก้ไข code เห็นผลทันทีเมื่อ refresh)
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+header("Expires: Thu, 01 Jan 1970 00:00:00 GMT");
+
 // 1. ตรวจสอบว่ามี session user_id หรือไม่ (ล็อกอินหรือยัง)
 if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     header("Location: login.php");

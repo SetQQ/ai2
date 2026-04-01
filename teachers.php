@@ -153,15 +153,25 @@ include 'includes/sidebar.php';
 <?php include 'includes/footer.php'; ?>
 
 <script>
+// เก็บข้อมูลครูทั้งหมดไว้ใน object โดยใช้ id เป็น key
+let teachersMap = {};
+let teacherModalInstance = null;
+
 $(document).ready(function() {
+    teacherModalInstance = new bootstrap.Modal(document.getElementById('teacherModal'), {
+        keyboard: true,
+        backdrop: true
+    });
+
     loadTeachers();
 
     // Handle Form Submit (Add/Edit)
     $('#teacherForm').on('submit', function(e) {
         e.preventDefault();
-        
         let formData = new FormData(this);
-        
+        let submitBtn = $(this).find('[type=submit]');
+        submitBtn.prop('disabled', true).text('กำลังบันทึก...');
+
         $.ajax({
             url: 'backend/teachers_action.php',
             type: 'POST',
@@ -170,22 +180,38 @@ $(document).ready(function() {
             processData: false,
             dataType: 'json',
             success: function(response) {
+                submitBtn.prop('disabled', false).text('บันทึกข้อมูล');
                 if (response.status === 'success') {
-                    $('#teacherModal').modal('hide');
+                    teacherModalInstance.hide();
                     loadTeachers();
-                    // Optionally, show a success toast here
+                    Swal.fire('สำเร็จ', response.message || 'บันทึกข้อมูลเรียบร้อย', 'success');
                 } else {
-                    alert('Error: ' + response.message);
+                    Swal.fire('เกิดข้อผิดพลาด', response.message, 'error');
                 }
             },
             error: function() {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+                submitBtn.prop('disabled', false).text('บันทึกข้อมูล');
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้', 'error');
             }
         });
+    });
+
+    // Event delegation: ปุ่มแก้ไข
+    $(document).on('click', '.btn-edit-teacher', function() {
+        let id = $(this).data('id');
+        let teacher = teachersMap[id];
+        if (teacher) openEditModal(teacher);
+    });
+
+    // Event delegation: ปุ่มลบ
+    $(document).on('click', '.btn-delete-teacher', function() {
+        let id = $(this).data('id');
+        deleteTeacher(id);
     });
 });
 
 function loadTeachers() {
+    teachersMap = {};
     $.ajax({
         url: 'backend/teachers_action.php',
         type: 'GET',
@@ -193,8 +219,10 @@ function loadTeachers() {
         dataType: 'json',
         success: function(response) {
             let html = '';
-            if (response.data.length > 0) {
+            if (response.data && response.data.length > 0) {
                 $.each(response.data, function(index, teacher) {
+                    teachersMap[teacher.id] = teacher; // เก็บลง map
+
                     let defaultAvatar = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(teacher.first_name) + '&background=random&color=fff';
                     let imgSrc = teacher.profile_image ? 'uploads/profiles/' + teacher.profile_image : defaultAvatar;
                     let lineTxt = teacher.line_id ? `<br><small class="text-success"><i class="fab fa-line"></i> ${teacher.line_id}</small>` : '';
@@ -207,10 +235,10 @@ function loadTeachers() {
                                 <td>${phoneTxt} ${lineTxt}</td>
                                 <td><span class="badge bg-secondary">${teacher.department}</span></td>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(teacher).replace(/'/g, "&apos;")})'>
+                                    <button class="btn btn-sm btn-outline-warning me-1 btn-edit-teacher" data-id="${teacher.id}" type="button">
                                         <i class="fas fa-edit"></i> แก้ไข
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTeacher(${teacher.id})">
+                                    <button class="btn btn-sm btn-outline-danger btn-delete-teacher" data-id="${teacher.id}" type="button">
                                         <i class="fas fa-trash-alt"></i> ลบ
                                     </button>
                                 </td>
@@ -220,49 +248,64 @@ function loadTeachers() {
                 html = '<tr><td colspan="6" class="text-center text-muted">ไม่มีข้อมูลบุคลากรครูในระบบ</td></tr>';
             }
             $('#teacherTableBody').html(html);
+        },
+        error: function() {
+            $('#teacherTableBody').html('<tr><td colspan="6" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
         }
     });
 }
 
 function openAddModal() {
-    $('#teacherForm')[0].reset();
+    document.getElementById('teacherForm').reset();
     $('#teacherId').val('');
     $('#actionType').val('create');
     $('#teacherModalLabel').text('เพิ่มข้อมูลครู');
-    $('#teacherModal').modal('show');
+    teacherModalInstance.show();
 }
 
 function openEditModal(teacher) {
-    $('#teacherForm')[0].reset();
-    $('#teacherId').val(teacher.id);
-    $('#teacherCode').val(teacher.teacher_code);
-    $('#firstName').val(teacher.first_name);
-    $('#lastName').val(teacher.last_name);
-    $('#userId').val(teacher.user_id);
-    $('#phone').val(teacher.phone);
-    $('#lineId').val(teacher.line_id);
-    $('#department').val(teacher.department);
+    document.getElementById('teacherForm').reset();
+    $('#teacherId').val(teacher.id || '');
+    $('#teacherCode').val(teacher.teacher_code || '');
+    $('#firstName').val(teacher.first_name || '');
+    $('#lastName').val(teacher.last_name || '');
+    $('#userId').val(teacher.user_id || '');
+    $('#phone').val(teacher.phone || '');
+    $('#lineId').val(teacher.line_id || '');
+    $('#department').val(teacher.department || '');
     $('#profileImage').val(''); // Clear file input
     $('#actionType').val('update');
     $('#teacherModalLabel').text('แก้ไขข้อมูลครู');
-    $('#teacherModal').modal('show');
+    teacherModalInstance.show();
 }
 
 function deleteTeacher(id) {
-    if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลครูท่านนี้?')) {
-        $.ajax({
-            url: 'backend/teachers_action.php',
-            type: 'POST',
-            data: { action: 'delete', id: id },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    loadTeachers();
-                } else {
-                    alert('Error: ' + response.message);
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: 'คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลครูท่านนี้?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ตกลง',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'backend/teachers_action.php',
+                type: 'POST',
+                data: { action: 'delete', id: id },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('ลบแล้ว!', 'ลบข้อมูลครูเรียบร้อยแล้ว', 'success');
+                        loadTeachers();
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', response.message, 'error');
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
+    });
 }
 </script>

@@ -38,9 +38,6 @@ include 'includes/sidebar.php';
                         <span class="d-none d-sm-inline fw-semibold text-dark"><?= htmlspecialchars($_SESSION['first_name'] ?? 'User') ?></span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="navbarDropdownMenuLink">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle me-2"></i> โปรไฟล์ส่วนตัว</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> ตั้งค่าระบบ</a></li>
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i> ออกจากระบบ</a></li>
                     </ul>
                 </li>
@@ -79,6 +76,13 @@ include 'includes/sidebar.php';
                             <!-- Data populated by AJAX -->
                         </tbody>
                     </table>
+                </div>
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 px-1" id="paginationWrapper" style="display:none!important">
+                    <span class="text-muted small" id="paginationInfo"></span>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="paginationControls"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -181,6 +185,10 @@ $(document).ready(function() {
     });
 });
 
+let allUsersData = [];
+let currentPage = 1;
+const PAGE_SIZE = 20;
+
 function loadUsers() {
     $.ajax({
         url: 'backend/users_action.php',
@@ -189,47 +197,77 @@ function loadUsers() {
         dataType: 'json',
         success: function(response) {
             if (response.status === 'success') {
-                let tbody = $('#usersTable tbody');
-                tbody.empty();
-                
-                if(response.data.length === 0) {
-                    tbody.append('<tr><td colspan="7" class="text-center text-muted py-4">ไม่พบข้อมูลผู้ใช้งาน</td></tr>');
-                    return;
-                }
-                
-                $.each(response.data, function(index, user) {
-                    let roleBadge = '';
-                    if (user.role === 'admin') roleBadge = '<span class="badge bg-danger">Admin</span>';
-                    else if (user.role === 'teacher') roleBadge = '<span class="badge bg-primary">Teacher</span>';
-                    else roleBadge = '<span class="badge bg-success">Student</span>';
-
-                    let statusBadge = user.is_active == 1 ? '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>ใช้งาน</span>' : '<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>ระงับ</span>';
-                    
-                    let createdDate = new Date(user.created_at).toLocaleDateString('th-TH');
-
-                    let tr = `
-                        <tr>
-                            <td class="text-muted fw-bold">${index + 1}</td>
-                            <td class="fw-semibold">${user.username}</td>
-                            <td>${user.first_name} ${user.last_name}</td>
-                            <td>${roleBadge}</td>
-                            <td>${statusBadge}</td>
-                            <td>${createdDate}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(user)})' title="แก้ไข">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})" title="ลบ">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.append(tr);
-                });
+                allUsersData = response.data;
+                currentPage = 1;
+                renderPage(currentPage);
             }
         }
     });
+}
+
+function renderPage(page) {
+    currentPage = page;
+    const tbody = $('#usersTable tbody');
+    tbody.empty();
+
+    const total = allUsersData.length;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const start = (page - 1) * PAGE_SIZE;
+    const end = Math.min(start + PAGE_SIZE, total);
+    const pageData = allUsersData.slice(start, end);
+
+    if (total === 0) {
+        tbody.append('<tr><td colspan="7" class="text-center text-muted py-4">ไม่พบข้อมูลผู้ใช้งาน</td></tr>');
+        $('#paginationWrapper').hide();
+        return;
+    }
+
+    $.each(pageData, function(index, user) {
+        let roleBadge = '';
+        if (user.role === 'admin') roleBadge = '<span class="badge bg-danger">Admin</span>';
+        else if (user.role === 'teacher') roleBadge = '<span class="badge bg-primary">Teacher</span>';
+        else roleBadge = '<span class="badge bg-success">Student</span>';
+
+        let statusBadge = user.is_active == 1 
+            ? '<span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>ใช้งาน</span>' 
+            : '<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>ระงับ</span>';
+
+        let createdDate = new Date(user.created_at).toLocaleDateString('th-TH');
+        let globalIndex = start + index + 1;
+
+        let tr = `
+            <tr>
+                <td class="text-muted fw-bold">${globalIndex}</td>
+                <td class="fw-semibold">${user.username}</td>
+                <td>${user.first_name} ${user.last_name}</td>
+                <td>${roleBadge}</td>
+                <td>${statusBadge}</td>
+                <td>${createdDate}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(user).replace(/'/g, "&apos;")})' title="แก้ไข">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})" title="ลบ">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tbody.append(tr);
+    });
+
+    // Pagination info
+    $('#paginationInfo').text(`แสดง ${start + 1} - ${end} จากทั้งหมด ${total} รายการ`);
+    $('#paginationWrapper').css('display', 'flex');
+
+    // Build pagination
+    let paginationHtml = '';
+    paginationHtml += `<li class="page-item ${page <= 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="renderPage(${page - 1}); return false;">&laquo;</a></li>`;
+    for (let i = 1; i <= totalPages; i++) {
+        paginationHtml += `<li class="page-item ${i === page ? 'active' : ''}"><a class="page-link" href="#" onclick="renderPage(${i}); return false;">${i}</a></li>`;
+    }
+    paginationHtml += `<li class="page-item ${page >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="renderPage(${page + 1}); return false;">&raquo;</a></li>`;
+    $('#paginationControls').html(paginationHtml);
 }
 
 function openAddModal() {
@@ -260,20 +298,32 @@ function openEditModal(user) {
 }
 
 function deleteUser(id) {
-    if (confirm('ระบบจะทำการลบบัญชีผู้ใช้นี้อย่างถาวร คุณแน่ใจหรือไม่?')) {
-        $.ajax({
-            url: 'backend/users_action.php',
-            type: 'POST',
-            data: { action: 'delete', id: id },
-            dataType: 'json',
-            success: function(response) {
-                if (response.status === 'success') {
-                    loadUsers();
-                } else {
-                    alert('Error: ' + response.message);
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: 'ระบบจะทำการลบบัญชีผู้ใช้นี้อย่างถาวร คุณแน่ใจหรือไม่?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ตกลง',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'backend/users_action.php',
+                type: 'POST',
+                data: { action: 'delete', id: id },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('ลบแล้ว!', 'ลบบัญชีผู้ใช้งานเรียบร้อยแล้ว', 'success');
+                        loadUsers();
+                    } else {
+                        Swal.fire('ข้อผิดพลาด', response.message, 'error');
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
+    });
 }
 </script>

@@ -20,40 +20,47 @@ switch ($action) {
         }
 
         try {
-            // Fetch class info to determine if it's Junior High or Senior High
-            $stmtClass = $pdo->prepare("SELECT class_name, level FROM classes WHERE id = ?");
-            $stmtClass->execute([$class_id]);
-            $classInfo = $stmtClass->fetch(PDO::FETCH_ASSOC);
-
-            // Determine if Junior High (ม.1, ม.2, ม.3)
             $is_junior_high = false;
-            if ($classInfo) {
-                if (strpos($classInfo['class_name'], 'ม.1') !== false || 
-                    strpos($classInfo['class_name'], 'ม.2') !== false || 
-                    strpos($classInfo['class_name'], 'ม.3') !== false) {
-                    $is_junior_high = true;
-                }
-            }
+            $classInfo = null;
+            $params = [];
 
             $sql = "SELECT s.*, 
                     sub.subject_name, sub.subject_code, 
-                    t.first_name AS teacher_fname, t.last_name AS teacher_lname
+                    t.first_name AS teacher_fname, t.last_name AS teacher_lname,
+                    c.class_name, cr.room_name, cr.room_code
                     FROM schedules s
                     LEFT JOIN subjects sub ON s.subject_id = sub.id
                     LEFT JOIN teachers t ON s.teacher_id = t.id
-                    WHERE s.class_id = ?";
+                    LEFT JOIN classes c ON s.class_id = c.id
+                    LEFT JOIN classrooms cr ON s.classroom_id = cr.id
+                    WHERE 1=1";
 
-            // Data filtering by Role
-            $params = [$class_id];
-            if ($_SESSION['role'] === 'teacher' && isset($_SESSION['teacher_id'])) {
+            if ($class_id === 'teacher_all' && $_SESSION['role'] === 'teacher') {
                 $sql .= " AND s.teacher_id = ?";
                 $params[] = $_SESSION['teacher_id'];
-            } elseif ($_SESSION['role'] === 'student' && isset($_SESSION['class_id'])) {
-                // Students only see their own class - enforced by class_id from session if possible
-                // For now, if student selects different class, let it be handled by UI or enforce here
-                if ($class_id != $_SESSION['class_id']) {
-                     echo json_encode(['status' => 'success', 'data' => [], 'message' => 'Unauthorized class access']);
-                     exit;
+                // Teachers by default see Senior High schedule matrix for display
+            } else {
+                $sql .= " AND s.class_id = ?";
+                $params[] = $class_id;
+
+                $stmtClass = $pdo->prepare("SELECT class_name, level FROM classes WHERE id = ?");
+                $stmtClass->execute([$class_id]);
+                $classInfo = $stmtClass->fetch(PDO::FETCH_ASSOC);
+
+                if ($classInfo) {
+                    if (strpos($classInfo['class_name'], 'ม.1') !== false || 
+                        strpos($classInfo['class_name'], 'ม.2') !== false || 
+                        strpos($classInfo['class_name'], 'ม.3') !== false ||
+                        strpos($classInfo['class_name'], 'ป.') !== false) {
+                        $is_junior_high = true;
+                    }
+                }
+
+                if ($_SESSION['role'] === 'student' && isset($_SESSION['class_id'])) {
+                    if ($class_id != $_SESSION['class_id']) {
+                         echo json_encode(['status' => 'success', 'data' => [], 'message' => 'Unauthorized class access']);
+                         exit;
+                    }
                 }
             }
 
@@ -83,7 +90,7 @@ switch ($action) {
         $class_id = $_POST['class_id'] ?? '';
         $subject_id = $_POST['subject_id'] ?? '';
         $teacher_id = $_POST['teacher_id'] ?? '';
-        $classroom_id = null; // Removed as per request
+        $classroom_id = !empty($_POST['classroom_id']) ? $_POST['classroom_id'] : null;
         $day_of_week = $_POST['day_of_week'] ?? '';
         $start_time = $_POST['start_time'] ?? '';
         $end_time = $_POST['end_time'] ?? '';
@@ -123,7 +130,7 @@ switch ($action) {
         $class_id = $_POST['class_id'] ?? '';
         $subject_id = $_POST['subject_id'] ?? '';
         $teacher_id = $_POST['teacher_id'] ?? '';
-        $classroom_id = null; // Removed as per request
+        $classroom_id = !empty($_POST['classroom_id']) ? $_POST['classroom_id'] : null;
         $day_of_week = $_POST['day_of_week'] ?? '';
         $start_time = $_POST['start_time'] ?? '';
         $end_time = $_POST['end_time'] ?? '';

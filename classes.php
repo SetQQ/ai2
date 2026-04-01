@@ -57,9 +57,16 @@ include 'includes/sidebar.php';
                             </tr>
                         </thead>
                         <tbody id="classTableBody">
-                            <tr><td colspan="3" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
+                            <tr><td colspan="4" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
+                </div>
+                <!-- Pagination -->
+                <div class="d-flex justify-content-between align-items-center mt-3 px-1" id="classPaginationWrapper" style="display:none!important">
+                    <span class="text-muted small" id="classPaginationInfo"></span>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0" id="classPaginationControls"></ul>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -135,6 +142,10 @@ $(document).ready(function() {
     });
 });
 
+let allClassesData = [];
+let classCurrentPage = 1;
+const CLASS_PAGE_SIZE = 15;
+
 function loadClasses() {
     $.ajax({
         url: 'backend/classes_action.php',
@@ -142,32 +153,60 @@ function loadClasses() {
         data: { action: 'read' },
         dataType: 'json',
         success: function(response) {
-            let html = '';
-            if (response.data && response.data.length > 0) {
-                $.each(response.data, function(index, cls) {
-                    html += `<tr>
-                                <td class="fw-semibold text-primary-custom">${cls.class_code || '-'}</td>
-                                <td>${cls.class_name}</td>
-                                <td>${cls.level || '-'}</td>
-                                <td class="text-center">
-                                    <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(cls).replace(/'/g, "&apos;")})'>
-                                        <i class="fas fa-edit"></i> แก้ไข
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteClass(${cls.id})">
-                                        <i class="fas fa-trash-alt"></i> ลบ
-                                    </button>
-                                </td>
-                             </tr>`;
-                });
-            } else {
-                html = '<tr><td colspan="4" class="text-center text-muted">ไม่มีข้อมูลระดับชั้นเรียนในระบบ</td></tr>';
+            if (response.data) {
+                allClassesData = response.data;
+                classCurrentPage = 1;
+                renderClassPage(classCurrentPage);
             }
-            $('#classTableBody').html(html);
         },
         error: function() {
             $('#classTableBody').html('<tr><td colspan="4" class="text-center text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
         }
     });
+}
+
+function renderClassPage(page) {
+    classCurrentPage = page;
+    const total = allClassesData.length;
+    const totalPages = Math.ceil(total / CLASS_PAGE_SIZE);
+    const start = (page - 1) * CLASS_PAGE_SIZE;
+    const end = Math.min(start + CLASS_PAGE_SIZE, total);
+    const pageData = allClassesData.slice(start, end);
+
+    let html = '';
+    if (total === 0) {
+        html = '<tr><td colspan="4" class="text-center text-muted">ไม่มีข้อมูลระดับชั้นเรียนในระบบ</td></tr>';
+        $('#classPaginationWrapper').hide();
+    } else {
+        $.each(pageData, function(index, cls) {
+            html += `<tr>
+                        <td class="fw-semibold text-primary-custom">${cls.class_code || '-'}</td>
+                        <td>${cls.class_name}</td>
+                        <td>${cls.level || '-'}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-warning me-1" onclick='openEditModal(${JSON.stringify(cls).replace(/'/g, "&apos;")})'>
+                                <i class="fas fa-edit"></i> แก้ไข
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteClass(${cls.id})">
+                                <i class="fas fa-trash-alt"></i> ลบ
+                            </button>
+                        </td>
+                     </tr>`;
+        });
+
+        // Pagination info
+        $('#classPaginationInfo').text(`แสดง ${start + 1} - ${end} จากทั้งหมด ${total} รายการ`);
+        $('#classPaginationWrapper').css('display', 'flex');
+
+        let paginationHtml = '';
+        paginationHtml += `<li class="page-item ${page <= 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="renderClassPage(${page - 1}); return false;">&laquo;</a></li>`;
+        for (let i = 1; i <= totalPages; i++) {
+            paginationHtml += `<li class="page-item ${i === page ? 'active' : ''}"><a class="page-link" href="#" onclick="renderClassPage(${i}); return false;">${i}</a></li>`;
+        }
+        paginationHtml += `<li class="page-item ${page >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="renderClassPage(${page + 1}); return false;">&raquo;</a></li>`;
+        $('#classPaginationControls').html(paginationHtml);
+    }
+    $('#classTableBody').html(html);
 }
 
 function openAddModal() {
@@ -197,7 +236,7 @@ function deleteClass(id) {
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'ใช่, ลบเลย!',
+        confirmButtonText: 'ตกลง',
         cancelButtonText: 'ยกเลิก'
     }).then((result) => {
         if (result.isConfirmed) {
